@@ -64,10 +64,12 @@ def _settings(tmp: Path, **model) -> Settings:
 def test_settings_and_overrides():
     with tempfile.TemporaryDirectory() as tmp:
         f = Path(tmp) / "p.toml"
-        f.write_text('[paths]\ndata_root = "D:/X"\noutputs = "out"\n[model]\nhel1os_smooth_s = 30\n'
-                     'select_smooth_epochs = 4\nuse_sharp = true\n', encoding="utf-8")
+        absolute = Path(tmp) / "X"                      # absolute on every OS, unlike "D:/X"
+        f.write_text(f'[paths]\ndata_root = "{absolute.as_posix()}"\noutputs = "out"\n[model]\n'
+                     'hel1os_smooth_s = 30\nselect_smooth_epochs = 4\nuse_sharp = true\n', encoding="utf-8")
+        load_settings.cache_clear()
         s = load_settings(str(f))
-        check("absolute paths kept, relative ones under the project", s.data_root == Path("D:/X")
+        check("absolute paths kept, relative ones under the project", s.data_root == absolute
               and s.outputs == s.root / "out", f"{s.data_root} {s.outputs}")
         check("output layout", s.frozen_dir == s.outputs / "model" / "forward" / "final"
               and s.copied_days == s.outputs / "quality" / "solexs_duplicates.json")
@@ -380,22 +382,25 @@ def test_alert_rules():
 
 def test_data_root_moves_every_data_folder():
     import os
+    # absolute paths on every OS (a "X:/Data" drive path is relative on Linux)
     with tempfile.TemporaryDirectory() as d:
+        data, moved = Path(d) / "Data", Path(d) / "Moved"
         f = Path(d) / "p.toml"
-        f.write_text('[paths]\ndata_root = "X:/Data"\ngoes_dir = "{data_root}/goes"\n', encoding="utf-8")
+        f.write_text(f'[paths]\ndata_root = "{data.as_posix()}"\ngoes_dir = "{{data_root}}/goes"\n',
+                     encoding="utf-8")
+        load_settings.cache_clear()
         s = load_settings(str(f), root=d)
-        check("goes_dir follows data_root", s.goes_dir == Path("X:/Data/goes"))
+        check("goes_dir follows data_root", s.goes_dir == data / "goes", str(s.goes_dir))
         check("unset data folders default under data_root",
-              s.sharp_dir == Path("X:/Data/sharp") and s.hel1os_extracted == Path("X:/Data/extracted/hel1os"))
-        os.environ["SOLARFLARE_DATA_ROOT"] = "Y:/Moved"
+              s.sharp_dir == data / "sharp" and s.hel1os_extracted == data / "extracted" / "hel1os")
+        os.environ["SOLARFLARE_DATA_ROOT"] = moved.as_posix()
         try:
             load_settings.cache_clear()
             s2 = load_settings(str(f), root=d)
         finally:
             del os.environ["SOLARFLARE_DATA_ROOT"]
             load_settings.cache_clear()
-        check("SOLARFLARE_DATA_ROOT moves them all", s2.data_root == Path("Y:/Moved")
-              and s2.goes_dir == Path("Y:/Moved/goes"))
+        check("SOLARFLARE_DATA_ROOT moves them all", s2.data_root == moved and s2.goes_dir == moved / "goes")
 
 
 def test_global_embargo():
