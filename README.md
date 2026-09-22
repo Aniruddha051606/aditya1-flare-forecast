@@ -1,5 +1,6 @@
 # Solar flare nowcasting and forecasting from Aditya-L1 (SoLEXS + HEL1OS)
 
+
 A deep-learning system for ISRO Problem Statement 15. It reads Aditya-L1 soft X-ray (SoLEXS) and hard
 X-ray (HEL1OS) Level-1 products and does four things:
 
@@ -310,5 +311,6 @@ torch.
   the network then holds the last values with a "stale" flag.
 - GOES is the truth, so a flare GOES misses counts as a false alarm. The catalogue checks HEL1OS-only
   events against SoLEXS 6–12 keV to show that some are real.
-#   a d i t y a 1 - f l a r e - f o r e c a s t  
+#   a d i t y a 1 - f l a r e - f o r e c a s t 
+ 
  
