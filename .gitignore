@@ -1,0 +1,64 @@
+# ---- Python --------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+*.egg-info/
+.venv/
+venv/
+
+# ---- Editors and OS ------------------------------------------------------
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- Secrets and download tooling: never commit --------------------------
+# bulk-download.js held PRADAN account credentials in plain text.
+.env
+*.env
+bulk-download.js
+node_modules/
+
+# ---- Raw mission data: lives in D:\Data (or the data drive), never here --
+data/
+al1_downloads/
+AL1_SLX_*/
+HLS_*/
+*.zip
+*.fits
+*.fits.gz
+*.fits.fz
+*.lc.gz
+*.pi.gz
+*.gti.gz
+*.nc
+
+# ---- Local-only folders --------------------------------------------------
+# old outputs and retired scripts, kept on this laptop only
+archive/
+# preprocessing cache, rebuilt from the raw data
+cache/
+
+# ---- Outputs -------------------------------------------------------------
+# Kept in git: reports (*.md, *.json), catalogues (*.csv), figures and the
+# frozen model (outputs/model/forward/final). Ignored: what the pipeline
+# rebuilds from the raw data, and local run state.
+outputs/**/cache/
+outputs/**/checkpoints/
+outputs/alerts/pred_*.npz
+outputs/alerts/watch.npz
+outputs/**/*.log
+outputs/**/live.json
+outputs/jobs/
+outputs/pipeline/
+outputs/_dev/
+
+# Local launcher and the built console (rebuild: see README)
+*.lnk
+*.exe
+build/
+*.spec
