@@ -310,3 +310,5 @@ torch.
   the network then holds the last values with a "stale" flag.
 - GOES is the truth, so a flare GOES misses counts as a false alarm. The catalogue checks HEL1OS-only
   events against SoLEXS 6–12 keV to show that some are real.
+#   a d i t y a 1 - f l a r e - f o r e c a s t  
+ 
