@@ -41,7 +41,8 @@ REFRESH_MS = 1000                          # the console reads the files every s
 NO_WINDOW = 0x08000000                     # CREATE_NO_WINDOW
 NEW_GROUP = 0x00000200                     # CREATE_NEW_PROCESS_GROUP
 TEST_SUITES = ("test_correctness", "test_robustness", "test_scale", "test_extract", "test_hel1os",
-               "test_forward", "test_goes", "test_physics", "test_catalog", "test_products", "test_pipeline")
+               "test_forward", "test_goes", "test_physics", "test_catalog", "test_products", "test_pipeline",
+               "test_suit")
 
 # ---- palette: calm console, colour only where it carries state -------------------
 GROUND = "#0c1215"

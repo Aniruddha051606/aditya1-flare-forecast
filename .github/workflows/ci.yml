@@ -66,3 +66,6 @@ jobs:
 
       - name: Pipeline tests (settings, calibration, SHARP, smoothing, clipping, runner, summary)
         run: python -m tests.test_pipeline
+
+      - name: SUIT tests (reader, full-disk test, exposure independence, no look-ahead, training)
+        run: python -m tests.test_suit

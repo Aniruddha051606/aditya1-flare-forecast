@@ -54,8 +54,10 @@ solarflare/                the package (python -m solarflare <command>)
   runall.py summary.py     the pipeline runner and the one-page results
   settings.py cli.py       project.toml -> settings; the command line
 dashboard/                 the desktop console (Tkinter) and its detached job runner
-scripts/                   data chores: unzip PRADAN archives, verify them, data status, SHARP download
-tests/                     11 suites (below)
+suit/                      forecasting from SUIT full-disk UV images (own README; same truth, split, scores)
+scripts/                   data chores: HEL1OS ingest, unzip and verify PRADAN archives, data status,
+                           GOES and SHARP downloads
+tests/                     12 suites (below)
 outputs/                   everything the pipeline writes (reports, catalogues, figures and the frozen
                            model are kept in git; predictions, checkpoints and logs are rebuilt)
 cache/                     preprocessed products, rebuilt only for new files (not in git)
@@ -352,9 +354,10 @@ python -m tests.test_physics        # background, causal onset, Neupert lag
 python -m tests.test_catalog        # soft rule, HEL1OS bursts, calibration, merge
 python -m tests.test_products       # lead time, HXR spectra, timing, temperature, day-ahead
 python -m tests.test_pipeline       # settings, calibration, SHARP, smoothing, clipping, runner, summary
+python -m tests.test_suit           # SUIT reader, full-disk test, exposure independence, no look-ahead
 ```
 
-CI (`.github/workflows/ci.yml`) runs lint and all eleven suites on Python 3.12 and 3.13, with CPU
+CI (`.github/workflows/ci.yml`) runs lint and all twelve suites on Python 3.12 and 3.13, with CPU
 torch.
 
 ---
