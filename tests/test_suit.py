@@ -140,7 +140,29 @@ def test_suit_end_to_end():
         n = make_archive(data)
         c = cfg()
 
-        frames = index_frames(data, root / "feat" / "frames_index.json")
+        # what real downloads contain sooner or later: a corrupt file, a zip with one bad
+        # member, a frame with no time anywhere -- reported, never silently dropped
+        (data / "NB03" / "SUT_20240502T000000_NB03_corrupt.fits").write_bytes(b"SIMPLE  = junk" * 100)
+        with zipfile.ZipFile(data / "SUIT_mixed.zip", "w") as z:
+            z.writestr("bad/SUT_20240503T000000_NB04.fits", b"not a fits file at all")
+        hdu0 = fits.PrimaryHDU(disk(T0, np.random.default_rng(9)))
+        hdu0.header["FTR_NAME"] = "NB03"
+        hdu0.writeto(data / "NB03" / "notime_NB03.fits")
+        problems: list = []
+        frames = index_frames(data, root / "feat" / "frames_index.json", problems=problems)
+        where = " ".join(p[0] for p in problems)
+        check("corrupt files, bad zip members and time-less frames are all reported",
+              "corrupt" in where and "SUIT_mixed.zip|bad/" in where and "notime" in where, str(problems)[:300])
+        from suit.inventory import summarise
+        inv = summarise(frames, problems, c, n_files=0)
+        check("inventory: where each time and filter came from is counted",
+              inv["time_from"].get("DATE-OBS", 0) == len(frames)
+              and inv["filter_from"].get("filename", 0) == n["name_only"]
+              and inv["filter_from"].get("FILTER", 0) == 120, f"{inv['time_from']} {inv['filter_from']}")
+        check("inventory: per-filter cadence and coverage",
+              inv["filters"]["NB03"]["median_cadence_min"] == 120.0 and inv["filters"]["BB03"]["median_cadence_min"] == 360.0,
+              str(inv["filters"]))
+        check("inventory: regions of interest counted apart", inv["region_of_interest_frames"] == n["roi"])
         by = {}
         for f in frames:
             by.setdefault(f.filt, []).append(f)
@@ -170,6 +192,28 @@ def test_suit_end_to_end():
         feats = build_features(sel, c, root / "feat")
         check("zoomed frames are rejected, the rest used",
               feats["NB03"]["rejected"] == n["zoom"] and feats["NB03"]["used"] == 360, str(feats["NB03"]))
+        # the cache never goes stale: other settings get their own table, a replaced file is recomputed
+        import dataclasses
+        import os
+        from suit import features as sf
+        c2 = dataclasses.replace(c, image_px=32)
+        build_features(sel, c2, root / "feat")
+        tables = sorted(p.name for p in (root / "feat").glob("features_NB03_*.npz"))
+        check("a changed setting builds its own cache instead of reusing stale features",
+              len(tables) == 2 and sf.feature_fingerprint(c) != sf.feature_fingerprint(c2), str(tables))
+        f0 = sel["NB03"][10]
+        st = os.stat(f0.path)
+        os.utime(f0.path, ns=(st.st_atime_ns, st.st_mtime_ns + 10**9))      # "re-downloaded"
+        calls = []
+        real = sf.image_features
+        import suit.dataset as sd
+        sd.image_features = lambda img, cfg_: calls.append(1) or real(img, cfg_)
+        try:
+            build_features(sel, c, root / "feat")
+        finally:
+            sd.image_features = real
+        check("a replaced file is recomputed, and only that one", len(calls) == 1, f"{len(calls)} recomputed")
+
         o = np.arange(T0 + 3600.0, T0 + 30 * DAY, 3600.0)
         X, names, have = hourly_table(feats, o, c)
         T = T0 + 15 * DAY

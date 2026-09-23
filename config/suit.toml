@@ -1,0 +1,32 @@
+# SUIT forecasting and the E1-E6 day-ahead matrix (python -m suit ...).
+#
+# Separate from project.toml on purpose: nothing here can change the SoLEXS +
+# HEL1OS pipeline. Paths follow project.toml (SUIT data in <data_root>/suit,
+# features in cache/suit, reports in outputs/suit). Every key is optional; the
+# defaults are in suit/config.py, and an unknown key is an error.
+
+[suit]
+# The chromospheric lines (Mg II k, Mg II h, Ca II H) and one photospheric band.
+# Names as SUIT writes them; check `python -m suit inventory` on real files first.
+filters = ["NB03", "NB04", "NB08", "BB03"]
+image_px = 256          # full disk downsampled to this before features (11 arcsec pixels)
+min_full_px = 1024      # frames smaller than this are regions of interest: never used
+per_hour = 1            # full-disk frames per filter and hour
+max_age_h = 3.0         # a filter's features older than this count as missing
+min_filters = 0         # filters an hour needs to count as observed; 0 = all (the day-ahead
+                        # rule: every feature present). Fewer: the rest imputed from training.
+# Retrospective study: features use a frame from the moment it was taken. For an
+# operational claim, set the real SUIT product latency here and re-run.
+latency_h = 0.0
+schedule_features = false   # image age / filter count: flare mode changes them (leak)
+
+[matrix]
+# The matrix uses the day-ahead system's own targets (>= C1, >= M1 within 2, 6,
+# 12, 24 h), split, embargo and scoring; only these are its own.
+hel1os_min_coverage = 0.5   # HEL1OS "observed" hour: >= 50% of the previous 6 h, as SoLEXS
+# The decision gate, fixed here before any SUIT data exists: SUIT earns the
+# neural-network branch if, for >= M1 within 24 h, E6 (all three) beats E4
+# (SoLEXS + HEL1OS) with a 95% week-block interval on the AUC gain above zero
+# and no loss of Brier skill. The other targets are reported, not used to decide.
+gate_class = "M"
+gate_horizon_h = 24

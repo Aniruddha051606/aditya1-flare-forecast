@@ -19,6 +19,23 @@ from scipy import ndimage
 from .config import SuitConfig
 
 
+#: Bump when what a feature *means* changes (a formula, a threshold rule), so every
+#: cached table is rebuilt. Settings that change features are covered by
+#: feature_fingerprint automatically.
+FEATURE_VERSION = 1
+
+
+def feature_fingerprint(cfg: SuitConfig) -> str:
+    """Identifies how features were computed: a cache made under other settings
+    is never reused (it would silently mix two definitions in one table)."""
+    import hashlib
+    import json
+
+    spec = {"v": FEATURE_VERSION, "px": cfg.image_px, "levels": list(cfg.contrast_levels),
+            "min_region_px": cfg.min_region_px}
+    return hashlib.sha1(json.dumps(spec, sort_keys=True).encode()).hexdigest()[:10]
+
+
 def feature_names(cfg: SuitConfig) -> list[str]:
     return (["c_p99", "c_p999", "c_max", "excess"]
             + [f"area_{lvl:g}" for lvl in cfg.contrast_levels]

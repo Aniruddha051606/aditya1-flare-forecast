@@ -69,3 +69,6 @@ jobs:
 
       - name: SUIT tests (reader, full-disk test, exposure independence, no look-ahead, training)
         run: python -m tests.test_suit
+
+      - name: SUIT matrix tests (E1-E6 pairing, no invented gains, X-ray blocks without look-ahead)
+        run: python -m tests.test_suit_matrix

@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 
 from .config import SuitConfig
-from .features import feature_names, image_features
+from .features import feature_fingerprint, feature_names, image_features
 from .io import SuitFrame, read_image
 
 
@@ -60,11 +60,21 @@ def build_features(selected: dict[str, list[SuitFrame]], cfg: SuitConfig, featur
     its own frames. A frame that turns out not to show the whole disk is stored as
     a NaN row (so it is not read again) and counted as rejected."""
     n_feat = len(feature_names(cfg))
+    fp = feature_fingerprint(cfg)
+    sigs: dict[str, str] = {}
+
+    def key(fr: SuitFrame) -> str:
+        # the file's size and time too: a re-downloaded or re-processed file is new data
+        if fr.path not in sigs:
+            st = os.stat(fr.path)
+            sigs[fr.path] = f"{st.st_size}|{st.st_mtime_ns}"
+        return f"{fr.key}|{sigs[fr.path]}"
+
     out = {}
     for filt, frames in selected.items():
-        path = Path(feature_dir) / f"features_{filt}.npz"
+        path = Path(feature_dir) / f"features_{filt}_{fp}.npz"
         table = _load(path)
-        todo = [f for f in frames if f.key not in table]
+        todo = [f for f in frames if key(f) not in table]
         for i, fr in enumerate(todo, 1):
             try:
                 v = image_features(read_image(fr), cfg)
@@ -72,14 +82,14 @@ def build_features(selected: dict[str, list[SuitFrame]], cfg: SuitConfig, featur
                 if verbose:
                     print(f"  unreadable {fr.key}: {type(exc).__name__}: {exc}")
                 continue
-            table[fr.key] = (fr.t_unix, v if v is not None else np.full(n_feat, np.nan, np.float32))
+            table[key(fr)] = (fr.t_unix, v if v is not None else np.full(n_feat, np.nan, np.float32))
             if i % 200 == 0:
                 _save(path, table, n_feat)
                 if verbose:
                     print(f"  {filt}: {i}/{len(todo)} new frames", flush=True)
         if todo:
             _save(path, table, n_feat)
-        wanted = {f.key for f in frames}
+        wanted = {key(f) for f in frames}
         rows = sorted(((t, F) for k, (t, F) in table.items() if k in wanted), key=lambda r: r[0])
         t = np.array([r[0] for r in rows], dtype=np.float64)
         F = np.stack([r[1] for r in rows]) if rows else np.zeros((0, n_feat), np.float32)
@@ -91,10 +101,20 @@ def build_features(selected: dict[str, list[SuitFrame]], cfg: SuitConfig, featur
 
 
 def hourly_table(feats: dict[str, dict], origins: np.ndarray, cfg: SuitConfig):
-    """(X, names, have): one row per origin; ``have`` marks rows with any filter."""
+    """(X, names, have): one row per origin; ``have`` marks rows where at least
+    ``cfg.n_required()`` filters have a frame. Unless ``cfg.schedule_features``,
+    the image-age and filter-count columns (SUIT's observing schedule, which flare
+    mode changes) are left out."""
+    X, names, n_have = _hourly_table(feats, origins, cfg)
+    if not cfg.schedule_features:
+        keep = [i for i, n in enumerate(names) if not (n.endswith("_age_h") or n == "n_filters")]
+        X, names = X[:, keep], [names[i] for i in keep]
+    return X, names, n_have >= cfg.n_required()
+
+
+def _hourly_table(feats: dict[str, dict], origins: np.ndarray, cfg: SuitConfig):
     base = feature_names(cfg)
     cols, names = [], []
-    have = np.zeros(origins.size, bool)
     n_have = np.zeros(origins.size)
 
     def at(t, F, when):
@@ -120,8 +140,7 @@ def hourly_table(feats: dict[str, dict], origins: np.ndarray, cfg: SuitConfig):
             Vd, _, _ = at(d["t"], d["F"], origins - 3600.0 * h)
             block.append(V0 - Vd)
         cols.append(np.hstack(block))
-        have |= ok0
         n_have += ok0
     names.append("n_filters")
     X = np.hstack(cols + [n_have[:, None]]) if cols else np.zeros((origins.size, 0))
-    return X, names, have
+    return X, names, n_have

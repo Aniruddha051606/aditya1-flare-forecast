@@ -1,10 +1,18 @@
-"""SUIT forecasting settings, and where its data and results live."""
+"""SUIT forecasting settings, and where its data and results live.
+
+Settings come from ``config/suit.toml`` -- separate from ``config/project.toml``,
+so SUIT work can never change the X-ray pipeline's settings -- on top of the
+defaults below.
+"""
 
 from __future__ import annotations
 
 import re
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+
+CONFIG = Path(__file__).resolve().parents[1] / "config" / "suit.toml"
 
 #: The 11 SUIT science filters (Tripathi et al. 2025, arXiv:2501.02274, table 1):
 #: centre or band in nm, and what each images.
@@ -38,11 +46,40 @@ class SuitConfig:
     contrast_levels: tuple[float, ...] = (1.2, 1.5, 2.0)
     min_region_px: int = 4            # at image_px: a bright region smaller than this is noise
     deltas_h: tuple[int, ...] = (6, 24)
-    horizons_h: tuple[int, ...] = (6, 12, 24)
+    min_filters: int = 0              # filters an hour needs to count as observed (0 = all of them)
+    # Image age and the number of filters present describe SUIT's observing
+    # schedule, not the Sun, and flare mode changes the schedule: never features
+    # unless this is set on purpose (then they are measured, not trusted).
+    schedule_features: bool = False
+    # SUIT-only runs (suit/train.py); the E1-E6 matrix always uses the day-ahead system's own
+    horizons_h: tuple[int, ...] = (2, 6, 12, 24)
     classes: tuple[str, ...] = ("C", "M")
     embargo_days: float = 27.0        # own split only: one solar rotation, as the X-ray model
     split_fractions: tuple[float, float] = (0.6, 0.2)   # own split: train, validation (rest is test)
+    # E1-E6 matrix
+    hel1os_min_coverage: float = 0.5  # as SoLEXS in the day-ahead system: >= 50% of the previous 6 h
+    gate_class: str = "M"             # the decision gate, fixed before any SUIT data is seen
+    gate_horizon_h: int = 24
     extra: dict = field(default_factory=dict)
+
+    def n_required(self) -> int:
+        return len(self.filters) if self.min_filters <= 0 else min(self.min_filters, len(self.filters))
+
+
+def load_config(path: Path | None = None) -> SuitConfig:
+    """SuitConfig from config/suit.toml ([suit] and [matrix] tables) over the
+    defaults. An unknown key is an error: a typo must not silently keep a default."""
+    cfg = SuitConfig()
+    p = Path(path) if path else CONFIG
+    if not p.exists():
+        return cfg
+    raw = tomllib.loads(p.read_text("utf-8"))
+    for section in ("suit", "matrix"):
+        for k, v in raw.get(section, {}).items():
+            if k == "extra" or not hasattr(cfg, k):
+                raise ValueError(f"{p.name}: unknown setting [{section}] {k}")
+            setattr(cfg, k, tuple(v) if isinstance(getattr(cfg, k), tuple) else v)
+    return cfg
 
 
 @dataclass(frozen=True)

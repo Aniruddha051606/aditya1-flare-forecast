@@ -1,15 +1,16 @@
-"""python -m suit inventory | features | train  (see suit/README.md)."""
+"""python -m suit inventory | features | train | matrix  (see suit/README.md).
+
+Settings: config/suit.toml; the options here override it for one run.
+"""
 
 from __future__ import annotations
 
 import argparse
 import sys
-from collections import Counter
 from dataclasses import replace
-from datetime import UTC, datetime
 from pathlib import Path
 
-from .config import FILTERS, SuitConfig, SuitPaths, default_paths
+from .config import SuitConfig, SuitPaths, default_paths, load_config
 
 
 def _paths(args) -> SuitPaths:
@@ -18,7 +19,7 @@ def _paths(args) -> SuitPaths:
 
 
 def _cfg(args) -> SuitConfig:
-    cfg = SuitConfig()
+    cfg = load_config(Path(args.config) if args.config else None)
     if args.filters:
         cfg.filters = tuple(f.strip().upper() for f in args.filters.split(","))
     if getattr(args, "embargo_days", None) is not None:
@@ -26,48 +27,11 @@ def _cfg(args) -> SuitConfig:
     return cfg
 
 
-def _print_header(f) -> None:
-    """The merged header of one frame, so the keyword names can be checked."""
-    import zipfile
-
-    from .io import _image_hdu, _open_fits
-
-    print(f"\n--- header of {Path(f.member or f.path).name}")
-    if f.member:
-        with zipfile.ZipFile(f.path) as z, z.open(f.member) as fh, _open_fits(fh, f.member) as h:
-            print(repr(_image_hdu(h)[1]))
-    else:
-        with open(f.path, "rb") as fh, _open_fits(fh, f.path) as h:
-            print(repr(_image_hdu(h)[1]))
-
-
 def cmd_inventory(args) -> int:
-    from .io import index_frames
+    from .inventory import run
 
-    p, cfg = _paths(args), _cfg(args)
-    frames = index_frames(p.data, p.features / "frames_index.json", verbose=True)
-    print(f"{len(frames)} frames under {p.data}")
-    if not frames:
-        return 1
-    day = lambda t: datetime.fromtimestamp(t, UTC).strftime("%Y-%m-%d")   # noqa: E731
-    full = [f for f in frames if min(f.nx, f.ny) >= cfg.min_full_px]
-    print(f"  {day(frames[0].t_unix)} -> {day(frames[-1].t_unix)}, {len({day(f.t_unix) for f in frames})} days")
-    print(f"  full-disk size (>= {cfg.min_full_px} px): {len(full)}; smaller (regions of interest, never used): "
-          f"{len(frames) - len(full)}")
-    print("  by filter (full-disk frames):")
-    for filt, n in sorted(Counter(f.filt or "?" for f in full).items()):
-        what = FILTERS.get(filt, ("", "filter not recognised: check FILTER_KEYS in suit/io.py"))[1]
-        print(f"    {filt:5s} {n:7d}  {what}")
-    print(f"  image sizes: {dict(Counter(f'{f.nx}x{f.ny}' for f in frames).most_common(6))}")
-    print(f"  observing modes: {dict(Counter(f.mode or '(no keyword)' for f in frames).most_common(6))}")
-    seen: set[str] = set()
-    for f in frames:
-        if len(seen) >= args.show:
-            break
-        if f.path not in seen:
-            seen.add(f.path)
-            _print_header(f)
-    return 0
+    r = run(_paths(args), _cfg(args), show=args.show)
+    return 0 if r["frames"] else 1
 
 
 def cmd_features(args) -> int:
@@ -87,14 +51,24 @@ def cmd_train(args) -> int:
     return 0
 
 
+def cmd_matrix(args) -> int:
+    from .matrix import run
+
+    run(_paths(args), _cfg(args), verbose=True)
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m suit", description="SUIT full-disk flare forecasting")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name, fn, help_ in (("inventory", cmd_inventory, "what SUIT data is there; --show N prints headers"),
-                            ("features", cmd_features, "compute per-frame features (incremental)"),
-                            ("train", cmd_train, "hourly table, models, scores -> outputs/suit/suit_summary.json")):
+    for name, fn, help_ in (
+            ("inventory", cmd_inventory, "what SUIT data is there, and does the reader understand it"),
+            ("features", cmd_features, "compute per-frame features (incremental)"),
+            ("train", cmd_train, "SUIT alone -> outputs/suit/suit_summary.json"),
+            ("matrix", cmd_matrix, "E1-E6: SoLEXS, HEL1OS, SUIT and combinations -> outputs/suit/matrix/")):
         p = sub.add_parser(name, help=help_)
         p.add_argument("--data", help="SUIT folder (default: <data_root>/suit)")
+        p.add_argument("--config", help="settings file (default: config/suit.toml)")
         p.add_argument("--filters", help="comma-separated, e.g. NB03,NB04,NB08,BB03")
         p.set_defaults(func=fn)
         if name == "inventory":
