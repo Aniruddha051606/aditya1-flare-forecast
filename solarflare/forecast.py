@@ -298,7 +298,7 @@ def score_rise(pred: dict, thr_exceed: float = 0.5, thr_lde: float = 0.5,
                 return roc_auc(_t[idx], _p[idx])
             a, alo, ahi = bootstrap_ci(None, g, auc_stat)
             out[key] = {"TSS": s["TSS"], "HSS": s["HSS"], "POD": s["POD"],
-                        "FAR": s["FAR"], "base_rate": s["base_rate"],
+                        "FAR": s["FAR"], "FB": s["FB"], "base_rate": s["base_rate"],
                         "AUC": a, "AUC_ci_lo": alo, "AUC_ci_hi": ahi,
                         "positive_events": pos_events, "negative_events": neg_events}
             # Reference: rank samples by the flux already reached. Whether a

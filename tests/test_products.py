@@ -108,6 +108,68 @@ def test_event_products_and_reading():
         check("tick counts add up", int(c.sum()) == int((ev.tick < ev.tick.min() + 500).sum()))
 
 
+def test_events_read_straight_from_the_zips():
+    """The archive keeps only the PRADAN zips (the event lists would need ~460 GB
+    unpacked), so hxr-spectra, hxr-timing and the CdTe temperatures read the
+    event list from inside the zip. It must give exactly what the extracted
+    copy gives, disabled pixels included."""
+    import os
+    import zipfile
+
+    t_start = 1783080000.0            # 2026-07-03 12:00:00 UTC
+    name = "HLS_20260703_120000_43200sec_lev1_V111"
+    other = "HLS_20260703_000000_43210sec_lev1_V111"
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        rng = np.random.default_rng(2)
+        n = 300
+        obt = 1000.0 + np.round(np.sort(rng.uniform(0, 40, n)), 2)
+        mjd = (obt + t_start + 5.0 - 1000.0) / 86400.0 + he.MJD_UNIX0
+        rows = {"CZT1": (obt, mjd, rng.uniform(15, 150, n), rng.integers(1, 10, n).astype(np.uint8)),
+                "CDTE1": (obt, mjd, rng.uniform(5, 40, n), None)}
+        ext = tmp / "extracted"
+        d = _write_product(ext, name, rows, disabled=[3])
+        d2 = _write_product(ext, other, rows)
+
+        def zip_up(dest: Path, *prods: Path) -> Path:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as z:
+                for prod in prods:
+                    for f in prod.rglob("*"):
+                        z.write(f, f.relative_to(ext).as_posix())
+            return dest
+
+        zips = tmp / "pradan"
+        zip_up(zips / "2026" / "07" / f"{name}.zip", d)
+        zip_up(zips / "2026" / "07" / f"{other}.zip", d2, d)     # a neighbour's zip carrying ours too
+
+        he.product_index.cache_clear()
+        pe = he.product_for(ext, t_start + 10.0, t_start + 30.0)
+        pz = he.product_for(zips, t_start + 10.0, t_start + 30.0)
+        check("a product is found inside its zip", pz is not None and pz.zip is not None)
+        check("...its own zip, not a neighbour's that carries it too",
+              pz is not None and pz.zip.name == f"{name}.zip", str(pz and pz.zip))
+        check("the zipped product keeps its name", pz is not None and pz.path.name == name)
+        for det, lo, hi in (("CZT1", 20.0, 100.0), ("CDTE1", 5.0, 40.0)):
+            a = he.read_events(pe, det, t_start + 10.0, t_start + 40.0, lo, hi)
+            b = he.read_events(pz, det, t_start + 10.0, t_start + 40.0, lo, hi)
+            same = (np.array_equal(a.tick, b.tick) and np.array_equal(a.energy, b.energy)
+                    and a.utc_offset == b.utc_offset
+                    and (a.pix is None) == (b.pix is None)
+                    and (a.pix is None or np.array_equal(a.pix, b.pix)))
+            check(f"{det}: events from the zip are identical to the extracted copy", same,
+                  f"{a.tick.size} vs {b.tick.size}")
+        bz = he.read_events(pz, "CZT1", t_start, t_start + 60.0)
+        check("disabled pixels are read from inside the zip", bz.pix is not None and 3 not in set(bz.pix.tolist()))
+
+        both = os.pathsep.join((str(ext), str(zips)))
+        pb = he.product_for(both, t_start + 10.0, t_start + 30.0)
+        check("an extracted copy wins over the zip", pb is not None and pb.zip is None)
+        check("the two-product zip indexes its other product",
+              any(p.path.name == other for p in he.product_index(str(zips))))
+        he.product_index.cache_clear()
+
+
 # ---------------------------------------------------------------- lead time
 
 def test_lead_time_helpers():

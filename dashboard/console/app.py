@@ -37,6 +37,8 @@ from .common import (AMBER, DOWNLOADS, FAINT, GREEN, GROUND, LINE, MONO, MUTED, 
                      REFRESH_MS, RED, ROOT, S, SMALL, STEEL, TEAL, TEST_SUITES, TEXT, UI, UI_B, flat_button,
                      fmt_dur, tail)
 from .flarewatch import FlareWatchTab
+from .data_view import DataTab
+from .forecasts import ForecastsTab
 from .pipeline_view import PipelineTab
 from .results import ResultsTab
 from .system import SystemPanel
@@ -212,7 +214,8 @@ class Console(tk.Tk):
         strip = tk.Frame(main, bg=GROUND)
         strip.pack(fill="x", pady=(0, 6))
         self.tab_labels = {}
-        for key, text in (("pipeline", "Pipeline"), ("training", "Training"), ("results", "Results")):
+        for key, text in (("pipeline", "Pipeline"), ("training", "Training"), ("results", "Results"),
+                          ("forecasts", "Forecasts"), ("data", "Data")):
             lab = tk.Label(strip, text=text, bg=GROUND, fg=MUTED, font=("Segoe UI Semibold", 11), cursor="hand2",
                            padx=2)
             lab.pack(side="left", padx=(0, 18))
@@ -221,7 +224,9 @@ class Console(tk.Tk):
         tk.Frame(main, bg=LINE, height=1).pack(fill="x", pady=(0, 10))
         holder = tk.Frame(main, bg=GROUND)
         holder.pack(fill="both", expand=True)
-        self.tabs = {"pipeline": PipelineTab(holder), "training": TrainingTab(holder), "results": ResultsTab(holder)}
+        self.tabs = {"pipeline": PipelineTab(holder, self.start_job), "training": TrainingTab(holder),
+                     "results": ResultsTab(holder), "forecasts": ForecastsTab(holder, self.start_job),
+                     "data": DataTab(holder, self.start_job)}
 
         side = tk.Frame(body, bg=GROUND)
         side.grid(row=0, column=1, sticky="nsew", padx=(12, 0))
@@ -421,6 +426,8 @@ class Console(tk.Tk):
         self.system.refresh(self.poller.gpu, live, now)
         self.watch.tab.refresh()
         self.tabs["results"].refresh()
+        self.tabs["forecasts"].refresh()
+        self.tabs["data"].refresh()
         self._update_terminal(run, job)
         self._update_watch(job, job_running, live, hist, status, cfg, now)
         self.foot.config(text=f"Training tab follows {run_label(run) if run else 'nothing yet'}   ·   refreshed "
@@ -549,6 +556,29 @@ class Console(tk.Tk):
                     items.append(("WARN", f"The {label} has {free:.0f} GB free (floor {S.min_free_gb:g} GB)."))
             except OSError:
                 items.append(("WARN", f"The {label} ({path}) is not reachable."))
+        # The data itself: on 2026-09-22 the whole data folder vanished between two
+        # runs, and nothing in the console said so until a command failed.
+        d = self.tabs["data"].info
+        if d and not d.get("error"):
+            if not d.get("exists"):
+                items.append(("ALERT", f"The data folder {S.data_root} is not there. Set data_root in "
+                                       "config/project.toml (or SOLARFLARE_DATA_ROOT) to where the data lives."))
+            elif not (d.get("solexs_days") or d.get("hel1os_days")):
+                items.append(("ALERT", f"No SoLEXS or HEL1OS files under {S.data_root}: every command refuses "
+                                       "to run on an empty archive."))
+            c = d.get("cache", {})
+            gone, n = c.get("sources_missing", 0), c.get("entries", 0)
+            if gone and n:
+                kind = "ALERT" if gone > 0.2 * n else "WARN"
+                items.append((kind, (f"{gone} of {n} cache files are missing; the cache is the data of record "
+                                     "here, so the pipeline stops above 20%. Rebuild them from the zips: "
+                                     "python scripts/ingest_batch.py")
+                              if c.get("cache_is_source") else
+                              (f"{gone} of {n} files the cache was built from are missing; the pipeline "
+                               "stops above 20%.")))
+            if not d.get("goes", {}).get("n"):
+                items.append(("WARN", f"No GOES files in {S.goes_dir}: training and scoring have no truth. "
+                                      "Data tab -> Download GOES."))
         has_sharp = S.sharp_dir.exists() and any(S.sharp_dir.glob("sharp_*.csv"))
         if not has_sharp:
             items.append(("INFO", f"No SHARP files in {S.sharp_dir}: the pipeline trains on X-rays only."))
@@ -575,7 +605,8 @@ class Console(tk.Tk):
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", default=None, help="training run to follow, e.g. outputs/model")
-    ap.add_argument("--tab", default="pipeline", choices=("pipeline", "training", "results"))
+    ap.add_argument("--tab", default="pipeline",
+                    choices=("pipeline", "training", "results", "forecasts", "data"))
     ap.add_argument("--no-watch", action="store_true", help="do not open the Flare Watch window")
     ap.add_argument("--snapshot", default=None, help="save a screenshot after the first refresh and exit")
     ap.add_argument("--selftest", default=None, metavar="JSON",
@@ -589,11 +620,24 @@ def main() -> None:
         app.watch.withdraw()
         app.update()
         app._refresh()
+        # the Data tab scans on a worker thread: wait for it, so the test sees
+        # what the tab and the watchdog really say about the data
+        for _ in range(50):
+            if app.tabs["data"].info:
+                break
+            app.update()
+            time.sleep(0.2)
+        app._refresh()
         Path(args.selftest).write_text(json.dumps({
             "root": str(ROOT), "outputs": str(OUTPUTS), "footer": app.foot.cget("text"),
             "pipeline": app.tabs["pipeline"].head.cget("text"), "watchdog": app.watchdog.get("1.0", "end").strip(),
             "training": app.tabs["training"].tiles["status"].value.cget("text"),
             "machine": app.system.disks.cget("text"),
+            "data": app.tabs["data"].where.cget("text"),
+            "data_tiles": {k: f"{t.value.cget('text')} · {t.sub.cget('text')}"
+                           for k, t in app.tabs["data"].tiles.items()},
+            "forecasts": app.tabs["forecasts"].empty.cget("text"),
+            "tabs": list(app.tabs),
             "flare_watch_days": len(app.watch.tab.days)}, indent=1), encoding="utf-8")
         app.destroy()
         return
@@ -607,3 +651,7 @@ def main() -> None:
         app.after(7000, snap)
     with contextlib.suppress(KeyboardInterrupt):
         app.mainloop()
+
+
+if __name__ == "__main__":
+    main()

@@ -682,7 +682,9 @@ def score(args) -> int:
     from solarflare.catalog.build import hel1os_minutes
 
     hxr = {k: g.put(t + 60.0, v) for k, (t, v) in hel1os_minutes(Path(args.cache_dir)).items()}
-    write_watch(out / "watch.npz", g, f, lx, sig, hard_frac, fl, TEST_START, hxr)
+    hope_thr = (ops["C"].get("hope") or {}).get(f"fa_{PRIMARY['C']:g}", {}).get("threshold")
+    hope_on = (np.nan_to_num(sig["hope"]["C"], nan=-np.inf) >= hope_thr) if hope_thr is not None else None
+    write_watch(out / "watch.npz", g, f, lx, sig, hard_frac, fl, TEST_START, hxr, hope_on)
     (out / "leadtime_summary.json").write_text(json.dumps({**summary, "operating_points": ops}, indent=2),
                                                encoding="utf-8")
     md = render(summary)
@@ -723,7 +725,7 @@ def write_alert_rules(path: Path, summary: dict, ops: dict, sha: str) -> None:
 
 
 def write_watch(path: Path, g, flux, goes, sig: dict, hard_frac, flares, test_start: float,
-                hxr: dict | None = None) -> None:
+                hxr: dict | None = None, hope_on=None) -> None:
     """Minute series for the console's Flare Watch: what the alert rules saw,
     GOES for comparison (never an input) and the HEL1OS light curves. Every
     value sits at the minute it became known: SoLEXS, HEL1OS and the network at
@@ -737,7 +739,8 @@ def write_watch(path: Path, g, flux, goes, sig: dict, hard_frac, flares, test_st
         m_combined=sig["combined"]["M"].astype(f32),
         flare_start=np.array([x.start_unix for x in flares]), flare_peak=np.array([x.peak_unix for x in flares]),
         flare_end=np.array([x.end_unix for x in flares]), flare_class=np.array([x.goes_class for x in flares]),
-        **{f"hxr_{k}": v.astype(f32) for k, v in (hxr or {}).items()})
+        **{f"hxr_{k}": v.astype(f32) for k, v in (hxr or {}).items()},
+        **({"hope_on": np.asarray(hope_on, dtype=bool)} if hope_on is not None else {}))
 
 
 def render(s: dict) -> str:

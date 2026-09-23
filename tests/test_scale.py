@@ -363,6 +363,133 @@ def test_cache_refuses_a_vanished_data_folder():
         check("SOLARFLARE_ALLOW_MISSING=1 continues on purpose", ok)
 
 
+def test_cache_survives_deleting_the_raw_files():
+    """The ingest loop: cache a day, delete its raw file, and the day still counts.
+
+    With cache_is_source the .npz is the record of what was observed, which is what
+    lets scripts/ingest_batch.py free the extracted products one at a time."""
+    from solarflare.preprocess.cache import build_cache, index_sources
+    pre = PreprocessConfig()
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        _archive(root / "data", 4)
+        first = build_cache(index_sources([root / "data"]), pre, root / "cache", workers=1, verbose=False)
+        n_ok = sum(e.get("status") == "ok" for e in first)
+        gone = sorted((root / "data").glob("*.zip"))[0]
+        day = gone.name[11:19]
+        gone.unlink()                                   # as the ingest script does after caching
+
+        pre.cache_is_source = False
+        try:
+            build_cache(index_sources([root / "data"]), pre, root / "cache", workers=1, verbose=False)
+            kept_off = True
+        except Exception:                               # noqa: BLE001 - the guard is the point
+            kept_off = False
+        check("without cache_is_source a deleted day is refused (guard holds)", not kept_off)
+
+        pre.cache_is_source = True
+        again = build_cache(index_sources([root / "data"]), pre, root / "cache", workers=1, verbose=False)
+        ok = [e for e in again if e.get("status") == "ok"]
+        check("the deleted day still counts", len(ok) == n_ok, f"{len(ok)} vs {n_ok}")
+        check("it is marked as read from the cache alone",
+              any(e.get("source_deleted") and day in e["source"]["path"] for e in ok))
+        # a re-processed version of that same day must not make it count twice
+        _write_day_zip(root / "data", day, T0 + (int(day[-2:]) - 1) * DAY, version="v1.1")
+        third = build_cache(index_sources([root / "data"]), pre, root / "cache", workers=1, verbose=False)
+        ok3 = [e for e in third if e.get("status") == "ok"]
+        days = [e["source"]["date"] for e in ok3]
+        check("a re-processed day replaces the cached one, never doubles it",
+              len(days) == len(set(days)), str(sorted(days)))
+
+        # ingest_batch reads back only what the call built: the carried products
+        # come back from every build_cache call, and re-reading them each time
+        # made the ingest quadratic over 2,700 HEL1OS products
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "ingest_batch", Path(__file__).resolve().parents[1] / "scripts" / "ingest_batch.py")
+        ib = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ib)
+        carried = [e for e in again if e.get("source_deleted")]
+        mine = ib.this_product(again)
+        check("the ingest verifies only the product it just built, not the carried ones",
+              bool(carried) and not any(e.get("source_deleted") for e in mine)
+              and len(mine) == len([e for e in again if e.get("status") == "ok"]) - len(carried),
+              f"{len(mine)} checked, {len(carried)} carried")
+
+
+def test_ingest_finds_products_filed_under_the_next_day():
+    """PRADAN files a HEL1OS product that starts at 23:59:50 under the next day's
+    folder inside its zip. The ingest used to derive the folder from the name,
+    so it extracted those products, then skipped them as having no light curves
+    and left them on disk uncached."""
+    import importlib.util
+    import zipfile
+    spec = importlib.util.spec_from_file_location(
+        "ingest_batch", Path(__file__).resolve().parents[1] / "scripts" / "ingest_batch.py")
+    ib = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ib)
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        for name, folder in (("HLS_20240328_235950_43194sec_lev1_V211", "2024/03/29"),
+                             ("HLS_20240414_000005_43180sec_lev1_V112", "2024/04/14")):
+            z = root / f"{name}.zip"
+            with zipfile.ZipFile(z, "w") as f:
+                for member in ("czt/lightcurve_czt1.fits", "aux/gticzt1.fits", "events/evt.fits"):
+                    f.writestr(f"{folder}/{name}/{member}", b"x")
+            out = ib.extract_lightcurves(z, root / "ext")
+            check(f"{name[4:12]} {name[13:19]}: product found in {folder}",
+                  out == root / "ext" / folder / name and (out / "czt" / "lightcurve_czt1.fits").exists(),
+                  str(out))
+            check(f"{name[4:12]} {name[13:19]}: the event list is not extracted",
+                  not (root / "ext" / folder / name / "events").exists())
+
+        # an older version shipped without light curves: seen, not extracted, not a failure
+        name = "HLS_20251017_000004_43194sec_lev1_V111"
+        z = root / f"{name}.zip"
+        with zipfile.ZipFile(z, "w") as f:
+            for member in ("aux/gticzt1.fits", "aux/hk.fits", "events/evt.fits"):
+                f.writestr(f"2025/10/17/{name}/{member}", b"x")
+        check("an event-list-only version is recognised",
+              ib.product_in_zip(z) == (f"2025/10/17/{name}", False), str(ib.product_in_zip(z)))
+        check("...and nothing is extracted from it", ib.extract_lightcurves(z, root / "ext2") is None
+              and not (root / "ext2").exists())
+
+
+def test_a_gutted_cache_is_refused():
+    """cache_is_source makes the .npz files the data of record, so the guard has
+    to watch *them*: deleting the cache must fail as loudly as deleting the raw
+    data used to, instead of quietly training on whatever is left."""
+    from solarflare.preprocess.cache import DataMissing, build_cache, index_sources
+    pre = PreprocessConfig()
+    pre.cache_is_source = True
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        _archive(root / "data", 5)
+        cache = root / "cache"
+        entries = build_cache(index_sources([root / "data"]), pre, cache, workers=1, verbose=False)
+        keys = [e["key"] for e in entries if e.get("status") == "ok"]
+        check("built a cache to gut", len(keys) >= 4, str(len(keys)))
+        for z in (root / "data").glob("*.zip"):         # the ingest script's delete
+            z.unlink()
+
+        (cache / f"{keys[0]}.npz").unlink()             # one hole: under the threshold
+        survived = True
+        try:
+            build_cache(index_sources([root / "data"]), pre, cache, workers=1, verbose=False)
+        except DataMissing:
+            survived = False
+        check("one missing cache file is tolerated", survived)
+
+        for k in keys[1:]:                              # most of it gone: refuse
+            (cache / f"{k}.npz").unlink()
+        try:
+            build_cache(index_sources([root / "data"]), pre, cache, workers=1, verbose=False)
+            refused = False
+        except DataMissing as exc:
+            refused = "cache files are missing" in str(exc)
+        check("a gutted cache stops the run", refused)
+
+
 def test_gather_loader_matches_dataloader():
     """GatherBatches must hand the network exactly what the per-window
     DataLoader did: same windows, values, shapes and dtypes."""

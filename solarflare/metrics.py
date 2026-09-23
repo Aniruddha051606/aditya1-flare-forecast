@@ -36,6 +36,12 @@ def skill_scores(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
     far = d(fp, tp + fp)                 # false alarm ratio
     csi = d(tp, tp + fp + fn)            # critical success index
     tss = pod - pofd                     # true skill statistic
+    # Frequency bias: how many events were forecast for every one that happened.
+    # 1 is unbiased, >1 overforecasting, <1 underforecasting. Leka et al. (2019,
+    # ApJS 243:36) require it beside TSS: at the low event rates typical of
+    # flares an overforecasting system can reach a high TSS where a cautious one
+    # cannot, so a TSS quoted on its own cannot be compared between methods.
+    fb = d(tp + fp, tp + fn)
 
     exp_correct = d((tp + fn) * (tp + fp) + (tn + fn) * (tn + fp), n) if n else 0.0
     hss = d((tp + tn) - exp_correct, n - exp_correct) if n else 0.0
@@ -48,6 +54,7 @@ def skill_scores(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
         "accuracy": float(d(tp + tn, n)),
         "POD": float(pod), "POFD": float(pofd), "FAR": float(far),
         "CSI": float(csi), "TSS": float(tss), "HSS": float(hss),
+        "FB": float(fb),
         "precision": float(precision), "F1": float(f1),
         "base_rate": float(d(tp + fn, n)),
     }

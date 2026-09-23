@@ -30,6 +30,7 @@ temperature_summary.json, TEMPERATURE.md, temperature.png}.
 
 from __future__ import annotations
 
+import os
 import argparse
 import csv
 import json
@@ -146,7 +147,9 @@ def main(argv=None) -> int:
     ap.add_argument("--catalog", default=str(S.catalog / "master_catalog.csv"))
     ap.add_argument("--manifest", default=str(S.cache / "manifest.json"))
     ap.add_argument("--goes-dir", default=str(S.goes_dir))
-    ap.add_argument("--hel1os-root", default=str(S.hel1os_extracted))
+    ap.add_argument("--hel1os-root", default=os.pathsep.join((str(S.hel1os_extracted), str(S.data_root))),
+                    help="where HEL1OS products are found: extracted folders and zips (read in place), "
+                         "several joined with os.pathsep")
     ap.add_argument("--min-flux", type=float, default=5e-6, help="SoLEXS-derived GOES peak flux, W/m^2")
     ap.add_argument("--out", default=str(S.physics))
     args = ap.parse_args(argv)

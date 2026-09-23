@@ -103,6 +103,46 @@ python scripts/data_status.py --data-root D:/Data                             # 
 Extraction stops before the disk falls below `min_free_gb`. A product split across two zips is
 extracted once. A half-downloaded file is skipped, never read.
 
+### Ingesting without filling the disk
+
+Extracting the whole HEL1OS archive needs about 139 GB. `scripts/ingest_batch.py` does it one
+product at a time instead: extract the light curves, cache them, read the entry back, then delete
+the extracted files again and move on. The zips are never touched, so sub-second timing and the hard
+X-ray spectra can still be redone from them.
+
+```bash
+python scripts/ingest_batch.py --dry-run     # what it would do
+python scripts/ingest_batch.py               # about 0.5 s per product, ~0.4 MB of cache each
+python scripts/ingest_batch.py --keep-extracted   # cache only, delete nothing
+```
+
+`[data] cache_is_source = true` then lets a day whose extracted files are gone still train, score and
+appear in the catalogue: the cache holds everything the pipeline reads (about 0.3 GB for the whole
+mission, against ~280 GB of zips and extracted products). Training runs once over all of it, not per
+batch -- training month by month would make the model forget earlier ones and break the chronological
+split. SoLEXS zips need no extraction at all; the reader reads inside the zip.
+
+What the cache cannot answer comes from the zips directly: the photon event lists behind the hard
+X-ray spectra (`hxr-spectra`), the sub-second timing study (`hxr-timing`) and the CdTe temperatures
+(`temperature`). Those stages read `events/evt.fits` straight out of each product's zip for the
+minutes around a flare (about a second per product), so nothing is extracted for them. Unpacked,
+the event lists alone would need ~460 GB. Delete the zips and these three products are lost.
+
+#### Protecting the cache
+
+Once the extracted files are deleted the cache *is* the data of record, so the guard that used to
+watch the raw archive watches the cache instead: if more than a fifth of the products the manifest
+lists have lost their `.npz`, the run stops rather than quietly training on what is left.
+
+```bash
+python scripts/ingest_batch.py --check                  # every entry present and readable?
+python scripts/ingest_batch.py --backup E:/cache-backup # copy it somewhere else afterwards
+```
+
+A hole is never fatal as long as the zips are there: re-running `ingest_batch.py` notices that an
+entry's `.npz` has gone and rebuilds just that product. The zips are the real thing to protect; the
+cache is a few hundred MB and cheap to keep a second copy of, ideally on another drive.
+
 ---
 
 ## The pipeline
@@ -111,6 +151,14 @@ extracted once. A half-downloaded file is skipped, never read.
 process. State is kept in `outputs/pipeline/state.json`, so an interrupted run resumes where it
 stopped. `--list` shows the state of every stage. `--redo <stage>` reruns that stage and everything
 built on it. A frozen model is never overwritten; the old one is moved aside.
+
+Training also survives an interruption inside a stage. After every epoch it writes
+`checkpoints/last.pt` (weights, optimiser, schedule, history and random state, written atomically),
+and a training started again with the same settings and data carries on from the last finished
+epoch with the result it would have reached uninterrupted. After a power cut, restart with plain
+`python -m solarflare pipeline` (the console's **Run pipeline**), not `--redo`, which would retrain
+stages that had already finished. `last.pt` is deleted when a training ends, and one left by other
+settings or data is ignored.
 
 | Stage | Command | Does |
 |---|---|---|
@@ -240,7 +288,7 @@ now, flux at each horizon, occurrence within 15/30/60 min, and peak size and tim
 `Training Console.exe` in the project folder (or `pythonw dashboard/mission_control.pyw`) opens **two
 windows**, both refreshed every second, so they can sit on one screen each:
 
-**Operations** — three screens: Pipeline, Training and Results.
+**Operations** — five screens: Pipeline, Training, Results, Forecasts and Data.
 - *Pipeline*: every stage with its state (done, running, failed, needs redoing) and duration.
 - *Training*: eight tiles (status, epoch, batch, elapsed, time left, best score, epochs since the
   best one, throughput), four charts — the loss and each head's share of it, validation skill,
@@ -252,16 +300,27 @@ windows**, both refreshed every second, so they can sit on one screen each:
   run, an idle or hot GPU, low disk.
 - Actions: run the full pipeline, redo a stage, check or extract data, update the cache, run the
   tests. Jobs run detached (closing a window does not stop them) and keep the laptop awake.
+- The console follows `SOLARFLARE_CONFIG` like every command, so it can watch a rehearsal run.
 
 - *Results*: the headline numbers read straight from the reports — both alerts (flares warned, chance
   level, false alarms per day, lead), flare-now and flare-soon skill, flux and peak errors — then the
   ≥ C1 alert against simple baselines, a reliability diagram, and the verdicts on SHARP, HEL1OS,
   calibration, the catalogue and the day-ahead forecasts. A result whose stage has not run says so.
 
+- *Forecasts*: the sealed day-ahead forecasts (UTC day, P(>= C1), P(>= M1), lead, seal), a date box
+  that issues the next one through `day-forecast`, and a viewer for the model-vs-actual pictures
+  `scripts/forward_check` draws. A sealed forecast is never re-issued.
+- *Data*: where the data lives (`data_root`), free space per drive, SoLEXS / HEL1OS / GOES / SHARP
+  coverage month by month (the HEL1OS gap is visible at a glance), the cache size and how many of
+  its sources are still on disk, and buttons to download GOES or SHARP. Scanning counts file names
+  on a worker thread, so the console keeps its 1 s tick. The watchdog raises an alert when the data
+  folder is empty or has lost files the cache was built from.
+
 **Flare Watch** — the frozen model replayed one UTC day at a time, five panels on one time axis:
 - SoLEXS flux in GOES units, with GOES for comparison and the GOES flare list;
 - the master catalogue: a row each for what SoLEXS and HEL1OS detected on their own;
-- the calibrated flare probability, shaded where the C alert is on;
+- the calibrated flare probability, shaded where the C alert is on, with the HOPE hot-onset
+  trigger marked underneath at the same false-alarm rate;
 - the M signal, shaded where the M alert is on;
 - the HEL1OS light curves (CZT 20–40 keV, CdTe 5–20 keV).
 

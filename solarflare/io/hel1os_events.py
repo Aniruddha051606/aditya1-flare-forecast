@@ -18,15 +18,23 @@ Measured on the real products (2026-09-18):
   recorded an event.
 * CZT carries an Am-241 source: a 59.5 keV line in every file, useful as an
   energy-scale check. ``aux/cztdis/czt?dispix.txt`` lists pixels disabled onboard.
+
+Products are found both as extracted folders and inside the PRADAN zips, which
+are read in place: the archive keeps only the zips (the event lists alone would
+need ~460 GB unpacked, 140 MB per product), and a flare needs a few minutes of
+one product. Decompressing one event list takes about a second.
 """
 
 from __future__ import annotations
 
+import io
+import os
 import re
+import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import numpy as np
 from astropy.io import fits
@@ -37,25 +45,63 @@ _NAME = re.compile(r"HLS_(\d{8})_(\d{6})_(\d+)sec_lev1_V(\d+)")
 MJD_UNIX0 = 40587.0
 
 
+EVT = "events/evt.fits"
+
+
 @dataclass(frozen=True)
 class Product:
-    path: Path
+    path: Path | PurePosixPath    # extracted folder, or the product's folder inside ``zip``
     t_start: float
     t_stop: float
     version: int
+    zip: Path | None = None       # set when the product is read from inside its zip
+
+
+def _product(m: re.Match, path, zip_path: Path | None = None) -> Product:
+    t0 = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S").replace(tzinfo=UTC).timestamp()
+    return Product(path, t0, t0 + float(m.group(3)), int(m.group(4)), zip_path)
+
+
+@lru_cache(maxsize=8192)
+def _namelist(zip_path: str) -> frozenset[str]:
+    with zipfile.ZipFile(zip_path) as z:
+        return frozenset(z.namelist())
 
 
 @lru_cache(maxsize=2)
 def product_index(root: str) -> tuple[Product, ...]:
-    """Every extracted HEL1OS product under ``root`` that has an event list."""
-    out = []
-    for d in Path(root).glob("*/*/*/HLS_*"):
-        m = _NAME.fullmatch(d.name)
-        if not m or not (d / "events" / "evt.fits").exists():
+    """Every HEL1OS product with an event list under ``root`` (several roots may
+    be joined with os.pathsep): extracted folders and products inside zips.
+
+    A product found both ways is read from the extracted copy (memory-mapped).
+    Among zips, the product's own zip wins over a neighbour's zip that happens
+    to carry it too (8 of the 2,719 PRADAN zips hold two products)."""
+    found: dict[str, tuple[int, Product]] = {}      # name -> (rank, product); lower rank wins
+    for r in (x for x in str(root).split(os.pathsep) if x):
+        base = Path(r)
+        if not base.is_dir():
             continue
-        t0 = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S").replace(tzinfo=UTC).timestamp()
-        out.append(Product(d, t0, t0 + float(m.group(3)), int(m.group(4))))
-    return tuple(sorted(out, key=lambda p: (p.t_start, -p.version)))
+        for d in base.rglob("HLS_*"):
+            m = _NAME.fullmatch(d.name)
+            if m and d.is_dir() and (d / EVT).exists():
+                found[d.name] = (0, _product(m, d))
+        for z in sorted(base.rglob("HLS_*.zip")):
+            try:
+                names = _namelist(str(z))
+            except (OSError, zipfile.BadZipFile):
+                continue
+            for n in names:
+                if not n.endswith("/" + EVT):
+                    continue
+                prefix = n[: -len(EVT) - 1]
+                name = prefix.rsplit("/", 1)[-1]
+                m = _NAME.fullmatch(name)
+                if not m:
+                    continue
+                rank = 1 if z.stem == name else 2
+                if name not in found or rank < found[name][0]:
+                    found[name] = (rank, _product(m, PurePosixPath(prefix), z))
+    return tuple(sorted((p for _, p in found.values()), key=lambda p: (p.t_start, -p.version)))
 
 
 def product_for(root: str | Path, t0: float, t1: float) -> Product | None:
@@ -72,11 +118,34 @@ def product_for(root: str | Path, t0: float, t1: float) -> Product | None:
     return best
 
 
+@lru_cache(maxsize=1)
+def _zip_bytes(zip_path: str, member: str) -> bytes:
+    """One decompressed event list. Flares are read in time order, so the next
+    call usually wants the same product again: keep the last one."""
+    with zipfile.ZipFile(zip_path) as z:
+        return z.read(member)
+
+
+def _open_events(product: Product):
+    if product.zip is None:
+        return fits.open(product.path / EVT, memmap=True)
+    return fits.open(io.BytesIO(_zip_bytes(str(product.zip), f"{product.path.as_posix()}/{EVT}")))
+
+
 def disabled_pixels(product: Product, det: str) -> set[int]:
-    f = product.path / "aux" / "cztdis" / f"{det.lower()}dispix.txt"
-    if not f.exists():
-        return set()
-    return {int(x) for x in f.read_text().split() if x.strip().lstrip("-").isdigit()}
+    rel = f"aux/cztdis/{det.lower()}dispix.txt"
+    if product.zip is None:
+        f = product.path / rel
+        if not f.exists():
+            return set()
+        text = f.read_text()
+    else:
+        member = f"{product.path.as_posix()}/{rel}"
+        if member not in _namelist(str(product.zip)):
+            return set()
+        with zipfile.ZipFile(product.zip) as z:
+            text = z.read(member).decode("ascii", "replace")
+    return {int(x) for x in text.split() if x.strip().lstrip("-").isdigit()}
 
 
 @dataclass
@@ -95,7 +164,7 @@ def read_events(product: Product, det: str, t0: float, t1: float,
                 e_lo: float = 0.0, e_hi: float = np.inf) -> Events:
     """Events of one detector with UTC in [t0, t1) and energy in [e_lo, e_hi)."""
     det = det.upper()
-    with fits.open(product.path / "events" / "evt.fits", memmap=True) as h:
+    with _open_events(product) as h:
         d = h[f"{det}-EVENTS"].data
         obt = np.asarray(d["hlsobt"], dtype=np.float64)
         mjd = np.asarray(d["mjd"], dtype=np.float64)

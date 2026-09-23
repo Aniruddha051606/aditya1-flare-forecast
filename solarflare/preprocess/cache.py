@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -145,21 +146,61 @@ class DataMissing(RuntimeError):
 MAX_MISSING_FRACTION = 0.2
 
 
-def check_sources_present(sources: list[Source], old_entries: list[dict]) -> None:
+def cached_without_source(old: dict, entries: list[dict], cache_dir: Path) -> list[dict]:
+    """Cached products whose raw file is gone, and which this run did not rebuild.
+
+    With ``PreprocessConfig.cache_is_source`` these still count as observed data:
+    the .npz holds everything training, scoring and the catalogue read. A day that
+    has since been re-processed (a new version cached now) is not carried over,
+    so one day is never counted twice."""
+    have_key = {e.get("key") for e in entries}
+    have_day = {(e["source"]["kind"], e["source"]["date"], e["source"]["detector"])
+                for e in entries if isinstance(e.get("source"), dict)}
+    out = []
+    for k, e in old.items():
+        src = e.get("source")
+        if (k in have_key or e.get("status") != "ok" or not isinstance(src, dict)
+                or not (cache_dir / f"{k}.npz").exists() or Path(src.get("path", "")).exists()
+                or (src.get("kind"), src.get("date"), src.get("detector")) in have_day):
+            continue
+        out.append({**e, "source_deleted": True})
+    return out
+
+
+def check_sources_present(sources: list[Source], old_entries: list[dict],
+                          cache_is_source: bool = False,
+                          cache_dir: Path | None = None) -> None:
     """Stop before training on a gutted archive.
 
     On 2026-09-22 the whole data folder vanished between two runs. Everything
     downstream would have carried on quietly: no sources means no windows, and a
     partial archive means a model trained on a different period than its reports
-    say. Set SOLARFLARE_ALLOW_MISSING=1 to proceed on purpose."""
+    say. Set SOLARFLARE_ALLOW_MISSING=1 to proceed on purpose.
+
+    Under ``cache_is_source`` the raw files are deleted on purpose, so their
+    absence proves nothing -- but the .npz files have taken their place as the
+    record, and the same guard then applies to *those*."""
     import os
 
     if os.environ.get("SOLARFLARE_ALLOW_MISSING"):
         return
-    if not sources:
+    cached_ok = sum(1 for e in old_entries if e.get("status") == "ok")
+    if not sources and not (cache_is_source and cached_ok):
         raise DataMissing("no SoLEXS or HEL1OS files found in the data folder. If the data moved "
                           "(e.g. to a new drive), set data_root in config/project.toml or the "
                           "SOLARFLARE_DATA_ROOT environment variable.")
+    if cache_is_source:
+        if cache_dir is None:
+            return
+        prev = {e["key"] for e in old_entries if e.get("status") == "ok" and e.get("key")}
+        gone = sorted(k for k in prev if not (cache_dir / f"{k}.npz").exists())
+        if prev and len(gone) > MAX_MISSING_FRACTION * len(prev):
+            raise DataMissing(
+                f"{len(gone)} of {len(prev)} cache files are missing from {cache_dir}. With "
+                "cache_is_source the cache *is* the data: restore it from a backup, or rebuild "
+                "the missing days from the zips with `python scripts/ingest_batch.py` (it fills "
+                "only the holes). Set SOLARFLARE_ALLOW_MISSING=1 to continue without them.")
+        return
     prev = {e["source"]["path"] for e in old_entries
             if e.get("status") == "ok" and isinstance(e.get("source"), dict) and e["source"].get("path")}
     gone = sorted(p for p in prev if not Path(p).exists())
@@ -259,11 +300,16 @@ def _process(src: Source, cfg: PreprocessConfig, out_path: str) -> dict:
             entry["detectors"] = sorted(o.detector_key for o in observations)
             del observations
 
-        np.savez_compressed(
-            out_path,
-            time_unix=raw.time_unix, values=raw.values, coverage=raw.coverage,
-            names=np.array(raw.names),
-        )
+        # through a temporary file: with cache_is_source the .npz is the data of
+        # record, and a power cut mid-write must not leave a torn one behind
+        tmp = f"{out_path}.tmp"
+        with open(tmp, "wb") as fh:
+            np.savez_compressed(
+                fh,
+                time_unix=raw.time_unix, values=raw.values, coverage=raw.coverage,
+                names=np.array(raw.names),
+            )
+        os.replace(tmp, out_path)
         observed = raw.coverage > 0
         entry.update(
             status="ok",
@@ -296,7 +342,8 @@ def build_cache(sources: list[Source], cfg: PreprocessConfig, cache_dir: Path,
         except (json.JSONDecodeError, KeyError, TypeError):
             old = {}
 
-    check_sources_present(sources, list(old.values()))
+    keep_cached = bool(getattr(cfg, "cache_is_source", False))
+    check_sources_present(sources, list(old.values()), keep_cached, cache_dir)
 
     entries: list[dict] = []
     todo: list[tuple[Source, str]] = []
@@ -326,7 +373,9 @@ def build_cache(sources: list[Source], cfg: PreprocessConfig, cache_dir: Path,
         current = {e.get("key") for e in entries}
         kept = [e for k, e in old.items()
                 if k not in current and (cache_dir / f"{k}.npz").exists()]
-        manifest_path.write_text(json.dumps(entries + kept, indent=1), encoding="utf-8")
+        tmp = manifest_path.with_name(manifest_path.name + ".tmp")
+        tmp.write_text(json.dumps(entries + kept, indent=1), encoding="utf-8")
+        os.replace(tmp, manifest_path)     # a torn manifest would forget the whole cache
 
     t0 = time.time()
     if todo:
@@ -367,6 +416,13 @@ def build_cache(sources: list[Source], cfg: PreprocessConfig, cache_dir: Path,
                         _save_manifest()
 
     _save_manifest()
+    if keep_cached:
+        # Days whose raw files were deleted after caching still count as observed.
+        carried = cached_without_source(old, entries, cache_dir)
+        entries += carried
+        if verbose and carried:
+            print(f"cache: {len(carried)} product(s) read from the cache alone "
+                  f"(their raw files are gone; cache_is_source is on)")
     if verbose:
         n_ok = sum(e.get("status") == "ok" for e in entries)
         n_fail = sum(e.get("status") == "failed" for e in entries)

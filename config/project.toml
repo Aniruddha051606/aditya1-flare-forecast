@@ -13,6 +13,10 @@ outputs = "outputs"
 
 [data]
 min_free_gb = 30                             # extraction stops before the disk goes below this
+# Keep a day that was cached and whose extracted files were then deleted
+# (scripts/ingest_batch.py): the cache holds everything the pipeline reads, ~200 MB
+# for the whole mission against ~280 GB of zips and extracted products.
+cache_is_source = true
 
 [model]
 labels = "goes"                              # flare truth: GOES-18 flare list, >= goes_min_class

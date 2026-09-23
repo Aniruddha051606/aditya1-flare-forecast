@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import math
+import os
+import random
 import time
 from pathlib import Path
 
@@ -167,6 +170,52 @@ def selection_score(m: dict[str, float]) -> float:
     return float(np.mean(parts)) - 0.05 * float(m.get("val_forecast_MAE", 0.0))
 
 
+#: Written after every epoch and removed when training ends: its presence means
+#: a run was interrupted (a power cut, a stop) and can pick up where it was.
+LAST = "last.pt"
+
+
+def _save_atomic(obj, path: Path) -> None:
+    """torch.save through a temporary file, so a power cut mid-write can never
+    leave a truncated checkpoint in place of a good one."""
+    tmp = path.with_name(path.name + ".tmp")
+    torch.save(obj, tmp)
+    os.replace(tmp, path)
+
+
+def run_fingerprint(cfg: Config, prep: Prepared, n_train_batches: int) -> str:
+    """Identifies a run: the settings plus the data the windows were built from.
+    An interrupted run resumes only under the same fingerprint, so a checkpoint
+    trained before new data arrived (e.g. the HEL1OS ingest) is never continued
+    on the new data."""
+    meta = prep.meta or {}
+    data = {k: meta.get(k) for k in ("n_segments", "soft_features", "hard_features", "n_sources", "cache",
+                                      "n_windows", "n_train", "n_val", "n_test", "n_events", "split_dates",
+                                      "observed_days")}
+    data["hard_observed"] = sum(float(s.get("hard_observed") or 0.0) for s in meta.get("segments") or [])
+    run_cfg = {k: v for k, v in vars(cfg.train).items() if k not in ("device", "torch_threads")}
+    blob = json.dumps({"model": vars(cfg.model), "win": vars(cfg.win), "pre": vars(cfg.pre), "train": run_cfg,
+                       "data": data, "train_batches": n_train_batches}, sort_keys=True, default=str)
+    return hashlib.sha1(blob.encode()).hexdigest()
+
+
+def _rng_state(loader) -> dict:
+    return {"torch": torch.get_rng_state(),
+            "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+            "numpy": np.random.get_state(), "python": random.getstate(),  # noqa: NPY002
+            "loader": loader.gen.get_state() if hasattr(loader, "gen") else None}
+
+
+def _set_rng_state(st: dict, loader) -> None:
+    torch.set_rng_state(st["torch"])
+    if st.get("cuda") is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(st["cuda"])
+    np.random.set_state(st["numpy"])  # noqa: NPY002
+    random.setstate(st["python"])
+    if st.get("loader") is not None and hasattr(loader, "gen"):
+        loader.gen.set_state(st["loader"])
+
+
 def train(cfg: Config, prep: Prepared | None = None, verbose: bool = True) -> dict:
     set_seed(cfg.train.seed)
     set_threads(getattr(cfg.train, "torch_threads", 0))
@@ -215,7 +264,35 @@ def train(cfg: Config, prep: Prepared | None = None, verbose: bool = True) -> di
     patience = 0
     t0 = time.time()
 
-    for epoch in range(cfg.train.epochs):
+    last_path = out_dir / "checkpoints" / LAST
+    fingerprint = run_fingerprint(cfg, prep, len(tr))
+    start = 0
+    if last_path.exists():
+        try:
+            st = torch.load(last_path, map_location=device, weights_only=False)
+            if st.get("fingerprint") != fingerprint:
+                if verbose:
+                    print(f"{last_path.name} is from a different run (settings or data changed): starting fresh")
+            else:
+                model.load_state_dict(st["model"])
+                crit.load_state_dict(st["loss"])
+                opt.load_state_dict(st["opt"])
+                sched.load_state_dict(st["sched"])
+                history, best_score, best_epoch, patience = (st["history"], st["best_score"],
+                                                             st["best_epoch"], st["patience"])
+                _set_rng_state(st["rng"], tr)
+                start = st["epoch"] + 1
+                if verbose:
+                    print(f"resuming an interrupted run after epoch {st['epoch']} "
+                          f"(best epoch {best_epoch}, score {best_score:.4f})")
+        except Exception as exc:  # noqa: BLE001 - an unreadable last.pt only costs the head start
+            if verbose:
+                print(f"could not resume from {last_path.name} ({type(exc).__name__}: {exc}): starting fresh")
+            history, best_score, best_epoch, patience, start = [], -np.inf, -1, 0, 0
+
+    # a run cut after its early stop was already decided has nothing left to do
+    epochs = range(start, cfg.train.epochs) if patience < cfg.train.early_stop_patience else range(0)
+    for epoch in epochs:
         t_epoch = time.time()
         model.train()
         run: dict[str, float] = {}
@@ -260,7 +337,7 @@ def train(cfg: Config, prep: Prepared | None = None, verbose: bool = True) -> di
         improved = smoothed > best_score + 1e-5
         if improved:
             best_score, best_epoch, patience = smoothed, epoch, 0
-            torch.save({
+            _save_atomic({
                 "model": model.state_dict(),
                 "loss": crit.state_dict(),
                 "epoch": epoch,
@@ -280,6 +357,10 @@ def train(cfg: Config, prep: Prepared | None = None, verbose: bool = True) -> di
         else:
             patience += 1
         live.epoch_done(history, best_epoch, float(best_score))
+        _save_atomic({"fingerprint": fingerprint, "epoch": epoch, "model": model.state_dict(),
+                      "loss": crit.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(),
+                      "history": history, "best_score": best_score, "best_epoch": best_epoch,
+                      "patience": patience, "rng": _rng_state(tr)}, last_path)
 
         if verbose:
             msg = (f"ep {epoch:3d} | loss {run['loss']:.4f} | "
@@ -299,6 +380,7 @@ def train(cfg: Config, prep: Prepared | None = None, verbose: bool = True) -> di
             break
 
     elapsed = time.time() - t0
+    last_path.unlink(missing_ok=True)          # finished: a later run starts from scratch
     (out_dir / "reports").mkdir(parents=True, exist_ok=True)
     (out_dir / "reports" / "history.json").write_text(
         json.dumps(history, indent=2), encoding="utf-8")

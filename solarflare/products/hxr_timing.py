@@ -31,6 +31,7 @@ Writes outputs/physics/{subsecond.csv, subsecond_summary.json, SUBSECOND.md, sub
 
 from __future__ import annotations
 
+import os
 import argparse
 import csv
 import json
@@ -401,7 +402,9 @@ def main(argv=None) -> int:
     S = load_settings()
     ap = argparse.ArgumentParser()
     ap.add_argument("--spectra", default=str(S.physics / "hxr_spectra.csv"))
-    ap.add_argument("--hel1os-root", default=str(S.hel1os_extracted))
+    ap.add_argument("--hel1os-root", default=os.pathsep.join((str(S.hel1os_extracted), str(S.data_root))),
+                    help="where HEL1OS products are found: extracted folders and zips (read in place), "
+                         "several joined with os.pathsep")
     ap.add_argument("--out", default=str(S.physics))
     args = ap.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")

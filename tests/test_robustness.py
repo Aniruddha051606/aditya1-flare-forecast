@@ -313,6 +313,85 @@ def test_full_pipeline_on_synthetic_data():
         check("RESULTS.md renders", out.exists() and out.stat().st_size > 0)
 
 
+def test_training_resumes_after_a_power_cut():
+    """On 2026-09-23 a power cut stopped training at epoch 44 of 60, and the
+    runs before it restarted from epoch 0 whenever they were stopped. Training
+    now keeps checkpoints/last.pt after every epoch and resumes from it: the
+    result must be the run that was never interrupted -- same history, same
+    weights -- and a last.pt from other settings or data must never be used."""
+    import torch
+    from solarflare import train as T
+    from solarflare.pipeline import prepare
+
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        data = root / "data"
+        _make_solexs(data / "slx", n=9000)
+        _make_hel1os(data / "hls_obs", n=4000)
+
+        def config(out: str) -> Config:
+            cfg = Config(data_root=data, out_dir=root / out)
+            cfg.pre.dt_seconds = 60.0
+            cfg.win.input_seconds = 1200.0
+            cfg.win.stride_seconds = 120.0
+            cfg.win.forecast_horizons_s = (60.0, 300.0)
+            cfg.win.occurrence_horizons_s = (300.0,)
+            cfg.train.epochs = 4
+            cfg.train.early_stop_patience = 99
+            cfg.train.batch_size = 8
+            cfg.train.embargo_s = 120.0
+            cfg.train.device = "cpu"
+            cfg.model.hidden = 16
+            cfg.model.dilations = (1, 2)
+            return cfg
+
+        cfg_a = config("straight")
+        prep = prepare(cfg_a, verbose=False)
+        a = T.train(cfg_a, prep=prep, verbose=False)
+
+        cfg_b = config("cut")
+        real_save = T._save_atomic
+
+        def cut_after_epoch_1(obj, path):
+            real_save(obj, path)
+            if path.name == T.LAST and obj["epoch"] == 1:
+                raise KeyboardInterrupt("power cut")
+
+        T._save_atomic = cut_after_epoch_1
+        try:
+            T.train(cfg_b, prep=prep, verbose=False)
+            cut = False
+        except KeyboardInterrupt:
+            cut = True
+        finally:
+            T._save_atomic = real_save
+        last = Path(cfg_b.out_dir) / "checkpoints" / T.LAST
+        check("the interrupted run left last.pt behind", cut and last.exists())
+        b = T.train(cfg_b, prep=prep, verbose=False)
+
+        def same(x, y):          # NaN (a score undefined on this tiny set) equals NaN
+            return x == y or (isinstance(x, float) and isinstance(y, float) and np.isnan(x) and np.isnan(y))
+
+        ha, hb = a["history"], b["history"]
+        check("the resumed run has the uninterrupted history",
+              len(ha) == len(hb) and all(same(ra[k], rb.get(k)) for ra, rb in zip(ha, hb)
+                                         for k in ra if k != "seconds"),
+              f"{len(ha)} vs {len(hb)} epochs")
+        wa = torch.load(a["checkpoint"], map_location="cpu", weights_only=False)["model"]
+        wb = torch.load(b["checkpoint"], map_location="cpu", weights_only=False)["model"]
+        check("...and bit-identical best weights", all(torch.equal(wa[k], wb[k]) for k in wa))
+        check("last.pt is removed once training finishes", not last.exists())
+
+        # a last.pt from other data or settings must not be continued
+        cfg_c = config("other")
+        (Path(cfg_c.out_dir) / "checkpoints").mkdir(parents=True)
+        st = {"fingerprint": "not this run", "epoch": 2}
+        torch.save(st, Path(cfg_c.out_dir) / "checkpoints" / T.LAST)
+        c = T.train(cfg_c, prep=prep, verbose=False)
+        check("a last.pt from another run is ignored: training starts from epoch 0",
+              [r["epoch"] for r in c["history"]] == [0, 1, 2, 3])
+
+
 def test_gru_encoder_exits_cleanly_on_cuda():
     """Regression guard for the cuDNN GRU teardown crash.
 

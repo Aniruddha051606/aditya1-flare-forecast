@@ -362,6 +362,22 @@ def test_metrics():
           and s["TN"] == 4)
     # TSS = POD - POFD = 2/3 - 1/5
     check("TSS value", abs(s["TSS"] - (2 / 3 - 1 / 5)) < 1e-9, f"got {s['TSS']}")
+    # Frequency bias = forecast events / observed events = 3/3
+    check("FB value", abs(s["FB"] - 1.0) < 1e-9, f"got {s['FB']}")
+
+    # Leka et al. (2019): at low event rates a system that cries wolf reaches a
+    # respectable TSS, so TSS alone cannot rank methods -- FB is what exposes it.
+    rare = np.zeros(100, dtype=int)
+    rare[:5] = 1
+    cautious = np.zeros(100, dtype=int)
+    cautious[:3] = 1                      # 3 hits, 0 false alarms
+    crier = np.zeros(100, dtype=int)
+    crier[:40] = 1                        # all 5 hits, but 35 false alarms
+    sc, sw = skill_scores(rare, cautious), skill_scores(rare, crier)
+    check("the overforecaster wins on TSS alone", sw["TSS"] > sc["TSS"],
+          f"crier {sw['TSS']:.3f} vs cautious {sc['TSS']:.3f}")
+    check("...and FB is what gives it away", sw["FB"] > 4 and abs(sc["FB"] - 0.6) < 1e-9,
+          f"crier FB {sw['FB']:.1f}, cautious FB {sc['FB']:.1f}")
 
     check("perfect AUC", abs(roc_auc(np.array([0, 0, 1, 1]),
                                      np.array([0.1, 0.2, 0.8, 0.9])) - 1.0) < 1e-9)

@@ -11,8 +11,8 @@ import time
 import tkinter as tk
 from datetime import UTC, datetime
 
-from .common import (AMBER, FAINT, GREEN, GROUND, LINE, MUTED, PANEL, RED, S, SMALL, TEAL, TEXT, UI, UI_B,
-                     fmt_dur, read_json)
+from .common import (AMBER, FAINT, GREEN, GROUND, LINE, MUTED, PANEL, RED, S, SMALL, STEEL, TEAL, TEXT, UI, UI_B,
+                     flat_button, fmt_dur, read_json)
 
 CHIP = {"done": ("DONE", GREEN), "running": ("RUNNING", TEAL), "failed": ("FAILED", RED),
         "stale": ("REDO", AMBER), "interrupted": ("STOPPED", AMBER), "-": ("TO DO", FAINT)}
@@ -28,13 +28,19 @@ def _age(stamp: str | None) -> float | None:
 
 
 class PipelineTab(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, run_job=None):
         super().__init__(parent, bg=GROUND)
         from solarflare import runall
 
         self.runall = runall
-        self.head = tk.Label(self, text="", bg=GROUND, fg=TEXT, font=UI_B, anchor="w", justify="left")
-        self.head.pack(fill="x", pady=(0, 4))
+        self.run_job = run_job
+        head = tk.Frame(self, bg=GROUND)
+        head.pack(fill="x", pady=(0, 4))
+        self.head = tk.Label(head, text="", bg=GROUND, fg=TEXT, font=UI_B, anchor="w", justify="left")
+        self.head.pack(side="left")
+        # The pipeline resumes from outputs/pipeline/state.json, so pressing this
+        # twice is safe: finished stages are skipped, not redone.
+        flat_button(head, "Run pipeline", self._run, STEEL).pack(side="right")
         self.sub = tk.Label(self, text="", bg=GROUND, fg=MUTED, font=UI, anchor="w", justify="left", wraplength=900)
         self.sub.pack(fill="x", pady=(0, 8))
         box = tk.Frame(self, bg=PANEL, highlightthickness=1, highlightbackground=LINE)
@@ -47,6 +53,12 @@ class PipelineTab(tk.Frame):
         self._names: list[str] = []
         self.foot = tk.Label(self, text="", bg=GROUND, fg=FAINT, font=SMALL, anchor="w", justify="left", wraplength=900)
         self.foot.pack(fill="x", pady=(6, 0))
+
+    def _run(self) -> None:
+        """Start (or resume) the whole pipeline as a detached job."""
+        if self.run_job:
+            self.run_job("Full pipeline", [{"label": "pipeline", "cmd": ["PY", "-u", "-m", "solarflare", "pipeline",
+                                                                     "--keep-going"]}])
 
     def _build_rows(self, stages) -> None:
         for w in self.table.winfo_children():

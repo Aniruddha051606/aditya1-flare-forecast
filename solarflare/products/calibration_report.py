@@ -28,7 +28,7 @@ from solarflare.train import collect_predictions, load_model
 
 def scores(y, p, thr):
     s = skill_scores(y, p >= thr)
-    return {"TSS": s["TSS"], "POD": s["POD"], "FAR": s["FAR"],
+    return {"TSS": s["TSS"], "POD": s["POD"], "FAR": s["FAR"], "FB": s["FB"],
             "Brier": brier_score(y, p), "BSS_vs_climatology": brier_skill_score(y, p),
             "AUC": roc_auc(y, p), "threshold": float(thr),
             "mean_predicted": float(p.mean()), "base_rate": float(y.mean())}
@@ -73,7 +73,7 @@ def main(argv=None) -> int:
         print(f"{name:>14}  base {r['base_rate']:.3f} | raw: Brier {r['Brier']:.4f} "
               f"BSS {r['BSS_vs_climatology']:+.3f} mean p {r['mean_predicted']:.3f} TSS {r['TSS']:.3f}"
               f"  ->  calibrated: Brier {c['Brier']:.4f} BSS {c['BSS_vs_climatology']:+.3f} "
-              f"mean p {c['mean_predicted']:.3f} TSS {c['TSS']:.3f}", flush=True)
+              f"mean p {c['mean_predicted']:.3f} TSS {c['TSS']:.3f} FB {c['FB']:.2f}", flush=True)
 
     dest = Path(args.out_dir) / "reports" / "calibration.json"
     dest.write_text(json.dumps(out, indent=2, default=float), encoding="utf-8")

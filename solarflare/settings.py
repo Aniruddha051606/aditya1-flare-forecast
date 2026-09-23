@@ -38,6 +38,7 @@ class Settings:
     cache: Path
     outputs: Path
     min_free_gb: float = 30.0
+    data: dict = field(default_factory=dict)
     model: dict = field(default_factory=dict)
     pipeline: dict = field(default_factory=dict)
 
@@ -124,6 +125,7 @@ def load_settings(path: str | None = None, root: str | None = None) -> Settings:
         cache=_resolve(p.get("cache", "cache"), root),
         outputs=_resolve(p.get("outputs", "outputs"), root),
         min_free_gb=float(raw.get("data", {}).get("min_free_gb", 30)),
+        data=dict(raw.get("data", {})),
         model=dict(raw.get("model", {})),
         pipeline=dict(raw.get("pipeline", {})),
     )
@@ -145,6 +147,9 @@ def model_config(s: Settings, out_dir: Path | None = None, sharp: bool | None = 
     if m.get("skip_copied_days", True) and s.copied_days.exists():
         cfg.pre.exclude_intervals = str(s.copied_days)
     cfg.pre.hel1os_smooth_s = float(m.get("hel1os_smooth_s", 0.0))
+    # [data] cache_is_source: a day whose extracted files were deleted after
+    # caching still counts (scripts/ingest_batch.py).
+    cfg.pre.cache_is_source = bool(s.data.get("cache_is_source", False))
     cfg.train.select_smooth_epochs = int(m.get("select_smooth_epochs", 1))
     cfg.train.early_stop_patience = int(m.get("early_stop_patience", 12))
     cfg.train.balance_head_gradients = bool(m.get("balance_head_gradients", False))

@@ -31,12 +31,30 @@ FILES = {
     "catalog": S.catalog / "catalog_summary.json",
     "dayahead": S.dayahead / "dayahead_summary.json",
 }
-C_METHODS = (("model", "network"), ("trend", "trend"), ("current", "flux now"),
+C_METHODS = (("model", "network"), ("hope", "HOPE hot onset"), ("trend", "trend"), ("current", "flux now"),
              ("rule", "rise rule"), ("rule_C_level", "rule ≥ C1"))
 
 
 def pct(v) -> str:
     return "--" if v is None else f"{100 * float(v):.0f}%"
+
+
+def ci(d: dict, key: str, nd: int = 2) -> str:
+    """" [lo, hi]" for a metric that carries a 95% interval, else nothing."""
+    c = (d or {}).get(f"{key}_ci95")
+    return f" [{c[0]:.{nd}f}, {c[1]:.{nd}f}]" if c else ""
+
+
+def fb(d: dict) -> str:
+    """Frequency bias, flagged when the score is flattered by overforecasting.
+
+    A TSS means little without it (Leka et al. 2019): a system that raises far
+    more alarms than there are flares can score well while being unusable."""
+    v = (d or {}).get("FB")
+    if v is None:
+        return ""
+    mark = "" if 0.7 <= v <= 1.5 else ("  over-forecasting" if v > 1.5 else "  under-forecasting")
+    return f" · FB {v:.2f}{mark}"
 
 
 class ResultsTab(tk.Frame):
@@ -121,14 +139,22 @@ class ResultsTab(tk.Frame):
         ev = R.get("eval")
         if ev:
             n = ev["nowcast_in_flare"]
-            T["now"].set(f"TSS {n['TSS']:.3f}", f"AUC {n['AUC']:.2f} · POD {n['POD']:.2f} · FAR {n['FAR']:.2f}")
+            T["now"].set(f"TSS {n['TSS']:.3f}", f"95% {ci(n, 'TSS').strip()} · AUC {n['AUC']:.2f} · "
+                                                f"POD {n['POD']:.2f} · FAR {n['FAR']:.2f}"
+                                                + fb(n))
             occ = ev.get("forecast_occurrence", {})
             if "15min" in occ:
                 T["soon"].set(f"TSS {occ['15min']['TSS']:.3f}",
-                              " · ".join(f"{h[:-3]} min {occ[h]['TSS']:.2f}" for h in ("30min", "60min") if h in occ))
+                              f"95% {ci(occ['15min'], 'TSS').strip()} · "
+                              + " · ".join(f"{h[:-3]} min {occ[h]['TSS']:.2f}" for h in ("30min", "60min") if h in occ)
+                              + fb(occ["15min"]))
             fr = ev.get("forecast_regression", {})
-            T["flux"].set(f"{ev['nowcast_regression']['MAE']:.3f} dex",
-                          "+" + " · +".join(f"{h[:-3]} min {fr[h]['MAE']:.3f}" for h in ("15min", "60min") if h in fr))
+            nr = ev["nowcast_regression"]
+            slx = nr.get("solexs_calibration_MAE")
+            T["flux"].set(f"{nr['MAE']:.3f} dex",
+                          (f"95% {ci(nr, 'MAE', 3).strip()} · " if nr.get("MAE_ci95") else "")
+                          + (f"a plain SoLEXS calibration: {slx:.3f} · " if slx else "")
+                          + "+" + " · +".join(f"{h[:-3]} min {fr[h]['MAE']:.3f}" for h in ("15min", "60min") if h in fr))
             pk = ev.get("peak", {})
             if pk:
                 T["peak"].set(f"{pk['log_peak_flux_MAE']:.3f} dex", f"timing {pk['time_to_peak_MAE_min']:.1f} min")
@@ -241,6 +267,28 @@ class ResultsTab(tk.Frame):
             line("Catalogue, test period:", "SoLEXS finds " + ", ".join(bits) + " of GOES flares; where both "
                  f"instruments observed, C flares {pct(both.get('both_combined_recall'))} vs "
                  f"{pct(both.get('both_combined_recall_chance'))} by chance.")
+        ev = R.get("eval")
+        fr = (ev or {}).get("forecast_regression", {})
+        h60 = fr.get("60min")
+        if h60 and h60.get("skill_vs_solexs_no_change") is not None:
+            better = h60["skill_vs_solexs_no_change"] > 0
+            line("Flux forecast an hour ahead:",
+                 f"{100 * h60['skill_vs_solexs_no_change']:+.0f}% error against 'no change' from Aditya's own flux "
+                 f"({100 * h60['skill_vs_persistence']:+.0f}% against GOES no change, which an Aditya-only system "
+                 f"never sees); 80% range covers {pct(h60.get('interval_coverage'))} → "
+                 f"{pct(h60.get('interval_coverage_calibrated'))} after the validation-fitted widening.",
+                 "good" if better else "no")
+        if a:
+            hp = (a["results"]["C"].get("hope") or {}).get(f"fa_{a['primary_false_alarms_per_day']['C']:g}")
+            md = (a["results"]["C"].get("model") or {}).get(f"fa_{a['primary_false_alarms_per_day']['C']:g}")
+            if hp and md:
+                win = md["event_TSS"] >= hp["event_TSS"]
+                cut = (a.get("hope_trigger") or {}).get("cut")
+                line("HOPE hot onset trigger (the published method, on SoLEXS):",
+                     f"event TSS {hp['event_TSS']:.2f} vs the network's {md['event_TSS']:.2f} at the same false "
+                     f"alarms; warns {pct(hp['TPR'])} of flares, median lead {hp['median_lead_min']} min"
+                     + (f" (hot cut {cut} chosen on validation)." if cut else "."),
+                     "good" if win else "no")
         d = R.get("dayahead")
         if d:
             r = d["results"].get(">=M1 within 24 h")

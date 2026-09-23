@@ -8,7 +8,9 @@ Five panels share the time axis:
   1. SoLEXS flux in GOES units, with GOES XRS-B for comparison (never an input)
      and the GOES flare list;
   2. the master catalogue: what SoLEXS and HEL1OS each detected, independently;
-  3. calibrated P(>= C1 flare within 15 min), shaded amber where the C alert is on;
+  3. calibrated P(>= C1 flare within 15 min), shaded amber where the C alert is on,
+     with the HOPE hot-onset trigger (the published method, rebuilt on SoLEXS)
+     marked underneath for comparison;
   4. the M signal (higher of the network's flux forecast and the flux now),
      shaded red where the M alert is on;
   5. the HEL1OS light curves: CZT 20-40 keV and CdTe 5-20 keV.
@@ -471,6 +473,12 @@ class FlareWatchTab(tk.Frame):
         if thr_c is not None:
             a3.axhline(thr_c, color=AMBER, lw=0.9, ls="--", label=f"C alert threshold {thr_c:.2f}")
             shade(a3, h, on_c, AMBER, 0.32)
+        hope = self.W.get("hope_on")
+        if hope is not None:
+            on_h = np.asarray(hope, bool)[sel]
+            if on_h.any():
+                a3.plot(h[on_h], np.full(on_h.sum(), 1.12), "|", color=VIOLET, ms=7, mew=1.2,
+                        label="HOPE hot onset trigger, same false alarms")
         a3.set_ylim(0, 1.25)
         a3.set_yticks([0, 0.5, 1.0])
         a3.set_ylabel("probability", color=MUTED, fontsize=8)

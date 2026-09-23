@@ -154,6 +154,16 @@ class PreprocessConfig:
     #: python -m solarflare quality: PRADAN day files that repeat the previous
     #: day's data). Empty = keep everything, as every run before v4 did.
     exclude_intervals: str = ""
+    #: Treat the preprocessing cache as the record of what was observed, so a day
+    #: whose raw files were deleted after caching still trains, scores and appears
+    #: in the catalogue. The cache is ~200 MB for the whole mission against ~190 GB
+    #: of zips and extracted products, which is what makes "download a batch,
+    #: cache it, delete the raw files" (scripts/ingest_batch.py) possible.
+    #:
+    #: The cost: changing anything that alters the cached rates (the grid, the
+    #: energy scale) then needs those files back. Keep the SoLEXS zips if you can;
+    #: they are ~4 GB for the whole mission, against ~150 GB for HEL1OS.
+    cache_is_source: bool = False
     #: HEL1OS L1 events (and the 1 s light curves built from them) arrive in
     #: readout batches every 2-8 s at ordinary rates, so single 20 s bins hold
     #: zero or two batches. A trailing mean over this many seconds smooths that

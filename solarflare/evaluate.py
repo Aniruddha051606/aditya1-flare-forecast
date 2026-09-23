@@ -308,7 +308,7 @@ def modality_ablation(model: SolexHelNet, prep: Prepared, cfg: Config,
         if mk.sum() and len(np.unique(y[mk])) > 1:
             s = skill_scores(y[mk], p[mk] >= thr)
             out[name] = {"TSS": s["TSS"], "HSS": s["HSS"], "POD": s["POD"],
-                         "FAR": s["FAR"], "AUC": roc_auc(y[mk], p[mk]),
+                         "FAR": s["FAR"], "FB": s["FB"], "AUC": roc_auc(y[mk], p[mk]),
                          "n": int(mk.sum())}
         else:
             out[name] = {"TSS": float("nan"), "n": int(mk.sum())}
@@ -334,7 +334,7 @@ def _print_report(r: dict, cfg: Config) -> None:
               f"TSS {n['TSS']:.3f} {_ci(n.get('TSS_ci95'))}   HSS {n['HSS']:.3f}   "
               f"AUC {_fmt(n['AUC'])} {_ci(n.get('AUC_ci95'))}")
         print(f"    POD {n['POD']:.3f}  FAR {n['FAR']:.3f}  CSI {n['CSI']:.3f}  "
-              f"F1 {n['F1']:.3f}")
+              f"F1 {n['F1']:.3f}  FB {n['FB']:.2f}")
         print(f"    Brier {_fmt(n['Brier'])}   BSS vs climatology "
               f"{_fmt(n['BSS_vs_climatology'])}")
         print(f"    TP {n['TP']} FP {n['FP']} FN {n['FN']} TN {n['TN']}")

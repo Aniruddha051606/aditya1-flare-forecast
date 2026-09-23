@@ -5,6 +5,7 @@ from __future__ import annotations
 import ctypes
 import json
 import math
+import os
 import sys
 import tkinter as tk
 from pathlib import Path
@@ -29,7 +30,10 @@ if str(ROOT) not in sys.path:
 
 from solarflare.settings import load_settings  # noqa: E402
 
-S = load_settings(str(ROOT / "config" / "project.toml"), root=str(ROOT))
+# SOLARFLARE_CONFIG selects another settings file, exactly as for the commands,
+# so the console can follow a rehearsal run (config/rehearsal.toml) or a test one.
+CONFIG = Path(os.environ.get("SOLARFLARE_CONFIG") or ROOT / "config" / "project.toml")
+S = load_settings(str(CONFIG), root=str(ROOT))
 OUTPUTS = S.outputs
 JOBS = OUTPUTS / "jobs"
 DOWNLOADS = S.data_root / "pradan1.issdc.gov.in" / "al1" / "protected" / "downloadData"
