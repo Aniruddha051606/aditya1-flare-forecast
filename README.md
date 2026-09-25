@@ -75,6 +75,8 @@ outputs/
   alerts/       minute-by-minute predictions, lead times, alert rules, the Flare Watch replay
   dayahead/     2–24 h forecasts
   physics/      temperatures, hard X-ray spectra and timing, hot onsets, Neupert effect
+  tests/        README.md over: suites/, baseline_vs_final/, peak_nowcast/, forecast_bias/,
+                blind_dayahead/ (see "Tests")
   pipeline/     state.json and one log per stage
   RESULTS.md    one page over all of it
 ```
@@ -360,6 +362,26 @@ python -m tests.test_suit_matrix    # E1-E6 pairing, no invented gains, X-ray bl
 
 CI (`.github/workflows/ci.yml`) runs lint and all thirteen suites on Python 3.12 and 3.13, with CPU
 torch.
+
+The finished study is tested further on the real archive, each result in `outputs/tests/` with
+`outputs/tests/README.md` as the index:
+
+```bash
+python scripts/run_tests.py             # every suite + lint, logs and summary in outputs/tests/suites/
+python -m solarflare model-tests        # baseline vs final, peak flux 3 min after onset, frequency bias
+python -m solarflare blind-dayahead     # one day-ahead forecast per test day, models frozen before it
+```
+
+- **baseline_vs_final**: the SoLEXS-only baseline and the final model on the same windows (the
+  period both held out), each fed as it was trained and using its own validation thresholds, with
+  paired day-resampled intervals.
+- **peak_nowcast**: each GOES flare's peak predicted 3 min after its start, the setting of arXiv
+  2608.20062, against GOES/SoLEXS "no change" and "no change + typical rise".
+- **forecast_bias**: frequency bias at the deployed, HSS-best and FB = 1 thresholds, raw and
+  calibrated: whether over-forecasting is the model's or the threshold's.
+- **blind_dayahead**: the day forecast replayed over the test period with models, calibration and
+  thresholds fitted before it (the frozen day models were refitted on the test period, so replaying
+  those would not be blind), scored against climatology and persistence.
 
 ---
 

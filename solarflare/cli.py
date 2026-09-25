@@ -6,6 +6,7 @@ Model:     cache, inspect, train, evaluate, baselines, forecast, fusion, forward
 Products:  quality, catalog, catalog-figure, alerts, dayahead, references,
            calibration-report, hel1os-value, hxr-spectra, hxr-timing, temperature,
            onset-study
+Tests:     model-tests, blind-dayahead (results in outputs/tests)
 Everything, in order:  pipeline
 
     python -m solarflare pipeline          # the whole study into outputs/, resumable
@@ -40,6 +41,10 @@ PRODUCTS = {
     "hxr-timing": ("solarflare.products.hxr_timing", "HEL1OS timing audit and sub-second structure"),
     "temperature": ("solarflare.products.temperature", "SoLEXS flare temperatures"),
     "onset-study": ("solarflare.products.onset_study", "hot onsets and the Neupert effect"),
+    "model-tests": ("solarflare.products.model_tests",
+                    "baseline vs final on the same windows, peak flux 3 min after onset, frequency bias"),
+    "blind-dayahead": ("solarflare.products.blind_dayahead",
+                       "one sealed day-ahead forecast per test day, from models frozen before the test"),
     "pipeline": ("solarflare.runall", "the whole study, stage by stage, resumable"),
 }
 

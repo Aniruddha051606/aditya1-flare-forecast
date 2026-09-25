@@ -13,6 +13,7 @@ file. ``outputs`` is laid out as::
       alerts/       minute-by-minute predictions over validation + test, lead times
       dayahead/     2-24 h forecaster (X-ray activity + SHARP)
       physics/      temperatures, hard X-ray spectra, HEL1OS timing, hot onsets
+      tests/        test suites, baseline vs final, peak nowcast, bias, blind day-ahead
       RESULTS.md    one page tying it together
 """
 
@@ -79,6 +80,10 @@ class Settings:
     @property
     def physics(self) -> Path:
         return self.outputs / "physics"
+
+    @property
+    def tests(self) -> Path:
+        return self.outputs / "tests"
 
     def split_dates(self, run_dir: Path | None = None) -> dict[str, float]:
         """Training end and test start (unix s) of a trained run: its data_meta.json.

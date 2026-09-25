@@ -400,6 +400,56 @@ def test_day_forecast_pieces():
     check("frozen models reload and predict", back["features"] == ["signal", "noise"] and p.shape == (5,))
 
 
+def test_model_test_pieces():
+    from types import SimpleNamespace as NS
+
+    from solarflare.products import blind_dayahead as bd
+    from solarflare.products import model_tests as mt
+
+    rng = np.random.default_rng(3)
+    y = (rng.random(20000) < 0.1).astype(float)
+    p = np.clip(0.3 * y + rng.random(y.size) * 0.7, 0, 1)
+    th = mt.fb_threshold(y, p)
+    s = mt.skill_scores(y, p >= th)
+    check("the FB = 1 threshold forecasts as many positives as there are", abs(s["FB"] - 1.0) < 0.02,
+          f"FB {s['FB']:.3f}")
+
+    t = np.repeat(np.arange(10) * 86400.0, 50)
+    e = rng.random(t.size)
+    r = mt.paired_error(e, e + 0.1, t)
+    check("paired error: a uniformly better model has a negative difference with an interval below 0",
+          r["diff"] == -0.1 and r["diff_ci95"][1] < 0 and r["final_better_share"] == 1.0, str(r))
+    yy = (rng.random(t.size) < 0.3).astype(float)
+    pp = rng.random(t.size)
+    h = mt.paired_head(yy, pp, pp, pp, pp, 0.5, 0.5, t)
+    check("paired head: identical models differ by exactly 0", h["diff"]["AUC"] == 0 and h["diff"]["TSS"] == 0
+          and h["diff"]["TSS_ci95"] == [0.0, 0.0], str(h["diff"]))
+
+    # one segment, 20 s steps, 2 h windows; flare A observed, flare B's origin unobserved
+    n = 2000
+    soft_mask = np.ones(n)
+    soft_mask[1300:1400] = 0
+    ev = [NS(start_idx=800, peak_idx=850, end_idx=900, start_unix=800 * 20.0, peak_unix=850 * 20.0,
+             peak_rate=2e-5),
+          NS(start_idx=1300, peak_idx=1350, end_idx=1390, start_unix=1300 * 20.0, peak_unix=1350 * 20.0,
+             peak_rate=3e-6)]
+    class Seg(NS):
+        def __len__(self):
+            return self.time_unix.size
+
+    prep = NS(segments=[Seg(time_unix=np.arange(n) * 20.0, soft_mask=soft_mask, events=ev)])
+    cfg = NS(steps_per_window=360, pre=NS(dt_seconds=20.0), win=NS(min_observed_fraction=0.5))
+    wins, info = mt.onset_windows(prep, cfg, 0.0)
+    check("onset windows: one per flare with SoLEXS at +3 min, origin 9 steps after the start",
+          len(wins) == 1 and wins[0].end == 810 and wins[0].t_unix == 809 * 20.0
+          and info[0]["peak_after_origin"], str(wins))
+
+    p1, p0 = bd.persistence_rates(np.array([1, 1, 1, 0, 0, 0.0]), np.ones(6, bool))
+    check("persistence: flare-day and quiet-day follow-on rates", abs(p1 - 2 / 3) < 1e-9 and p0 == 0.0,
+          f"{p1}, {p0}")
+    check("Brier skill: a perfect forecast scores 1", bd.bss(yy, yy, np.full_like(yy, 0.3)) == 1.0)
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     print(f"Running {len(tests)} product test groups\n")
