@@ -1,0 +1,11 @@
+{
+  "figure": "fig01_pipeline",
+  "caption": "Pipeline of Paper 1. SoLEXS and HEL1OS Level-1 products (831 SoLEXS days, 2668 HEL1OS products) are gridded to 20 s in a per-product cache, turned into 24 + 48 features with trailing backgrounds, and cut into 2 h windows split chronologically with 27-day embargoes. The same network is trained on SoLEXS only (E1), HEL1OS only (E2) and both (E4); thresholds, probability calibration and interval widths are fixed on validation and applied once to the test period. GOES-18 XRS supplies the labels (flares >= C1.0) and the flux target, and is never a model input.",
+  "sources": [
+    "paper_results/01_data_inventory.json",
+    "paper_results/02_experiment_split.json"
+  ],
+  "script": "paper_results/plotting/fig01_pipeline.py",
+  "generated_utc": "2026-09-25 20:14:47",
+  "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278"
+}

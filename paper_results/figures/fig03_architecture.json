@@ -1,0 +1,12 @@
+{
+  "figure": "fig03_architecture",
+  "caption": "SoLEXHEL-Net (463,615 trainable parameters), used by all experiments. Each instrument's 360-step (2 h at 20 s) input and its observation mask enter a causal temporal convolutional encoder (hidden size 64, kernel 3, dilations 1, 2, 4, 8, 16, 32, 64, 128); a gate conditioned on both masks fuses them; a causal trunk (dilations 1, 2, 4, 8) and causal attention pooling feed the heads. Every layer sees only the past. During E4 training a whole instrument is dropped with probability 0.25. Clock inputs are off. The single-instrument experiments E1 and E2 use the same network with the other instrument's mask held at zero in training and prediction.",
+  "sources": [
+    "outputs/model/reports/config.json",
+    "outputs/model/reports/data_meta.json",
+    "solarflare/models/net.py"
+  ],
+  "script": "paper_results/plotting/fig03_architecture.py",
+  "generated_utc": "2026-09-25 20:11:12",
+  "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278"
+}

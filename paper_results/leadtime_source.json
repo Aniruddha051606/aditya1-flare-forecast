@@ -1,0 +1,25 @@
+{
+  "provenance": {
+    "generated_utc": "2026-09-25 20:26:51",
+    "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278+uncommitted-changes",
+    "python": "3.14.7",
+    "script": "leadtime_tables.py"
+  },
+  "source": [
+    "outputs/alerts/lead_times.csv",
+    "outputs/alerts/leadtime_summary.json"
+  ],
+  "model": "final",
+  "model_sha256": "e6854b21dc185274",
+  "test_period": [
+    "2026-03-30 04:53",
+    "2026-09-21 00:00"
+  ],
+  "test_days_with_data": 150.2,
+  "primary_false_alarms_per_day": {
+    "C": 2.0,
+    "M": 0.5
+  },
+  "definitions": "solarflare/products/leadtime.py module docstring: window = 30 min before the GOES start (or the previous flare's peak) to the GOES peak; warned = alert ON at some minute of it; lead = GOES peak minus the first ON minute; chance = the same windows moved 2 h where no flare of the class occurs; event TSS = warned - chance; false alarms = ON episodes with no flare of the class up to 15 min (C) / 30 min (M) after, per day of data",
+  "min_events_for_class_statistics": 20
+}

@@ -23,13 +23,24 @@ Products are found both as extracted folders and inside the PRADAN zips, which
 are read in place: the archive keeps only the zips (the event lists alone would
 need ~460 GB unpacked, 140 MB per product), and a flare needs a few minutes of
 one product. Decompressing one event list takes about a second.
+
+A few products from the big flare storms are far larger: HLS_20251112_000006
+holds a 9.3 GB event list (1.9 GB zipped). Decompressed into memory and
+converted column by column, one read of it took more than 12 GB. Event lists
+above ``IN_MEMORY_MAX_BYTES`` are therefore unpacked to a scratch file and
+memory-mapped (the last one is kept for the next read, since flares are read in
+time order), and ``read_events`` converts only the rows near the requested
+window, found by scanning the time column in chunks.
 """
 
 from __future__ import annotations
 
+import atexit
 import io
 import os
 import re
+import shutil
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -46,6 +57,17 @@ MJD_UNIX0 = 40587.0
 
 
 EVT = "events/evt.fits"
+#: Event lists larger than this are memory-mapped from a scratch file, not held in RAM.
+IN_MEMORY_MAX_BYTES = 512 * 1024**2
+#: Folder for that scratch file (default: the system temporary folder).
+SCRATCH_ENV = "SOLARFLARE_SCRATCH"
+#: Free space left on the scratch drive after unpacking.
+SCRATCH_RESERVE_BYTES = 10 * 1024**3
+#: Rows of the time column converted at once while locating a window.
+ROW_CHUNK = 4_000_000
+#: Margin around the requested window when locating rows by packet UTC, which
+#: jitters by up to +-1 s against the onboard clock.
+MARGIN_S = 120.0
 
 
 @dataclass(frozen=True)
@@ -126,10 +148,68 @@ def _zip_bytes(zip_path: str, member: str) -> bytes:
         return z.read(member)
 
 
+@lru_cache(maxsize=64)
+def _member_size(zip_path: str, member: str) -> int:
+    with zipfile.ZipFile(zip_path) as z:
+        return z.getinfo(member).file_size
+
+
+_scratch: dict = {"key": None, "path": None, "stale": []}
+
+
+def _drop_scratch() -> None:
+    """Delete scratch files no longer needed (a file still mapped on Windows is
+    retried on the next call and at exit)."""
+    if _scratch["path"] is not None:
+        _scratch["stale"].append(_scratch["path"])
+    _scratch.update(key=None, path=None)
+    keep = []
+    for p in _scratch["stale"]:
+        try:
+            p.unlink(missing_ok=True)
+        except OSError:
+            keep.append(p)
+    _scratch["stale"] = keep
+
+
+atexit.register(_drop_scratch)
+
+
+def _unpacked(zip_path: str, member: str, size: int) -> Path:
+    """A large event list unpacked to a scratch file; the previous one is deleted."""
+    key = (zip_path, member)
+    if _scratch["key"] == key and _scratch["path"].exists():
+        return _scratch["path"]
+    _drop_scratch()
+    folder = Path(os.environ.get(SCRATCH_ENV) or tempfile.gettempdir())
+    free = shutil.disk_usage(folder).free
+    if free < size + SCRATCH_RESERVE_BYTES:
+        raise OSError(f"reading {Path(zip_path).name} needs {size / 1e9:.1f} GB of scratch space in {folder}, "
+                      f"which has {free / 1e9:.1f} GB free; set {SCRATCH_ENV} to a folder with room")
+    fd, name = tempfile.mkstemp(prefix="hel1os_evt_", suffix=".fits", dir=folder)
+    os.close(fd)
+    path = Path(name)
+    try:
+        with zipfile.ZipFile(zip_path) as z, z.open(member) as src, open(path, "wb") as dst:
+            shutil.copyfileobj(src, dst, 16 * 1024**2)
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
+    _scratch.update(key=key, path=path)
+    return path
+
+
 def _open_events(product: Product):
+    # "denywrite" maps the file read-only. astropy's default ("readonly") maps it
+    # copy-on-write, which on Windows reserves commit for the whole file: 10 GB
+    # for the largest event list, though nothing is ever written.
     if product.zip is None:
-        return fits.open(product.path / EVT, memmap=True)
-    return fits.open(io.BytesIO(_zip_bytes(str(product.zip), f"{product.path.as_posix()}/{EVT}")))
+        return fits.open(product.path / EVT, mode="denywrite", memmap=True)
+    zip_path, member = str(product.zip), f"{product.path.as_posix()}/{EVT}"
+    size = _member_size(zip_path, member)
+    if size > IN_MEMORY_MAX_BYTES:
+        return fits.open(_unpacked(zip_path, member, size), mode="denywrite", memmap=True)
+    return fits.open(io.BytesIO(_zip_bytes(zip_path, member)))
 
 
 def disabled_pixels(product: Product, det: str) -> set[int]:
@@ -160,18 +240,34 @@ class Events:
         return self.tick * TICK_S + self.utc_offset
 
 
+def _rows_near(d, t0: float, t1: float) -> tuple[int, int]:
+    """First and last+1 row whose packet UTC lies within MARGIN_S of [t0, t1),
+    reading the time column ROW_CHUNK rows at a time. Rows are packet-ordered,
+    and the packet stamp is within ~1 s of the onboard clock, so every event of
+    the window lies inside this range."""
+    i0 = i1 = None
+    for a in range(0, len(d), ROW_CHUNK):
+        utc = (np.asarray(d[a:a + ROW_CHUNK]["mjd"], dtype=np.float64) - MJD_UNIX0) * 86400.0
+        hit = np.flatnonzero((utc >= t0 - MARGIN_S) & (utc < t1 + MARGIN_S))
+        if hit.size:
+            i0 = a + int(hit[0]) if i0 is None else i0
+            i1 = a + int(hit[-1]) + 1
+    return (0, 0) if i0 is None else (i0, i1)
+
+
 def read_events(product: Product, det: str, t0: float, t1: float,
                 e_lo: float = 0.0, e_hi: float = np.inf) -> Events:
     """Events of one detector with UTC in [t0, t1) and energy in [e_lo, e_hi)."""
     det = det.upper()
     with _open_events(product) as h:
         d = h[f"{det}-EVENTS"].data
-        obt = np.asarray(d["hlsobt"], dtype=np.float64)
-        mjd = np.asarray(d["mjd"], dtype=np.float64)
-        utc = (mjd - MJD_UNIX0) * 86400.0
-        near = (utc >= t0 - 120.0) & (utc < t1 + 120.0)
-        if not near.any():
+        r0, r1 = _rows_near(d, t0, t1)
+        if r1 <= r0:
             return Events(det, np.zeros(0, np.int64), np.zeros(0), None, np.nan)
+        d = d[r0:r1]
+        obt = np.asarray(d["hlsobt"], dtype=np.float64)
+        utc = (np.asarray(d["mjd"], dtype=np.float64) - MJD_UNIX0) * 86400.0
+        near = (utc >= t0 - MARGIN_S) & (utc < t1 + MARGIN_S)
         offset = float(np.median(utc[near] - obt[near]))
         tick = np.rint(obt / TICK_S).astype(np.int64)
         k0, k1 = int(np.floor((t0 - offset) / TICK_S)), int(np.ceil((t1 - offset) / TICK_S))

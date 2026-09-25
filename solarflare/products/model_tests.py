@@ -79,23 +79,29 @@ def load_run(run: Path, device: torch.device, hel1os: bool) -> dict:
             "train_end": float(split["train_end"]), "test_start": float(split["test_start"])}
 
 
-def _without_hel1os(seg):
-    """A segment as the baseline saw every day it trained on: no HEL1OS (the
-    zeros and zero mask the dataset writes where HEL1OS did not observe)."""
+def _withheld(seg, which: str):
+    """A segment with one instrument withheld ("soft" or "hard"): the zeros and
+    zero mask the dataset writes where that instrument did not observe. With
+    "hard" this is how the SoLEXS-only baseline saw every day it trained on."""
     s = copy.copy(seg)
-    s.hard = np.zeros_like(seg.hard)
-    s.hard_mask = np.zeros_like(seg.hard_mask)
+    if which == "hard":
+        s.hard, s.hard_mask = np.zeros_like(seg.hard), np.zeros_like(seg.hard_mask)
+    else:
+        s.soft, s.soft_mask = np.zeros_like(seg.soft), np.zeros_like(seg.soft_mask)
     return s
 
 
 def predict(r: dict, prep, targets: list, windows: list, sets: dict[str, list[int]],
             device: torch.device) -> dict[str, dict | None]:
     """Predictions of one run on several window sets, inputs normalised with the
-    run's own normaliser; device memory is released afterwards."""
+    run's own normaliser; device memory is released afterwards. ``r["blank"]``
+    ("soft"/"hard") withholds an instrument; a run loaded with hel1os=False
+    withholds HEL1OS."""
     from solarflare.torch_data import GatherBatches, normalized_inputs
     from solarflare.train import collect_predictions
 
-    segs = prep.segments if r["hel1os"] else [_without_hel1os(s) for s in prep.segments]
+    blank = r.get("blank") or (None if r["hel1os"] else "hard")
+    segs = prep.segments if blank is None else [_withheld(s, blank) for s in prep.segments]
     shared = {"targets": targets, **normalized_inputs(segs, r["norm"])}
     cfg = r["cfg"]
     out = {}
@@ -129,9 +135,9 @@ def soft_windows(prep, cfg: Config, idx, t0: float, t1: float = np.inf) -> list[
     return keep
 
 
-def onset_windows(prep, cfg: Config, t0: float) -> tuple[list[WindowIndex], list[dict]]:
-    """One window per GOES flare starting after ``t0``, its origin 3 min after the
-    flare's GOES start, where SoLEXS observed the origin and enough of the input."""
+def onset_windows(prep, cfg: Config, t0: float, t1: float = np.inf) -> tuple[list[WindowIndex], list[dict]]:
+    """One window per GOES flare whose origin, 3 min after its GOES start, lies in
+    [t0, t1], where SoLEXS observed the origin and enough of the input."""
     L = cfg.steps_per_window
     k = int(round(ONSET_DELAY_S / cfg.pre.dt_seconds))
     wins, info = [], []
@@ -139,7 +145,7 @@ def onset_windows(prep, cfg: Config, t0: float) -> tuple[list[WindowIndex], list
         cs = np.concatenate([[0.0], np.cumsum(s.soft_mask)])
         for e in s.events:
             o = e.start_idx + k
-            if o >= e.end_idx or o + 1 > len(s) or o + 1 < L or s.time_unix[o] < t0:
+            if o >= e.end_idx or o + 1 > len(s) or o + 1 < L or not (t0 <= s.time_unix[o] <= t1):
                 continue
             if s.soft_mask[o] <= 0 or (cs[o + 1] - cs[o + 1 - L]) / L < cfg.win.min_observed_fraction:
                 continue
@@ -316,8 +322,31 @@ def peak_scores(y: np.ndarray, p: np.ndarray, t: np.ndarray) -> dict:
             "MAE": r4(np.mean(np.abs(e))) if y.size else None, "bias": r4(np.mean(e)) if y.size else None}
 
 
-def m_class_scores(y: np.ndarray, p: np.ndarray) -> dict:
-    s = skill_scores(y >= CLASS_FLOOR["M"], p >= CLASS_FLOOR["M"])
+def goes_class(log_flux: float | None) -> str:
+    """log10 W/m^2 -> GOES class, e.g. -5.3 -> 'C5.0'."""
+    if log_flux is None or not np.isfinite(log_flux):
+        return "n/a"
+    f = 10.0 ** log_flux
+    for letter, floor in (("X", 1e-4), ("M", 1e-5), ("C", 1e-6), ("B", 1e-7), ("A", 1e-8)):
+        if f >= floor:
+            return f"{letter}{f / floor:.1f}"
+    return f"A{f / 1e-8:.1f}"
+
+
+def m_cut(y: np.ndarray, p: np.ndarray) -> float:
+    """The predicted log peak above which a flare is called >= M: the value that
+    maximises TSS on validation flares, as every threshold here is chosen (the
+    M1 floor itself when validation has only one class)."""
+    ok = np.isfinite(p) & np.isfinite(y)
+    t, q = y[ok] >= CLASS_FLOOR["M"], p[ok]
+    if t.all() or not t.any():
+        return CLASS_FLOOR["M"]
+    cands = np.unique(np.concatenate([np.quantile(q, np.linspace(0.01, 0.99, 197)), [CLASS_FLOOR["M"]]]))
+    return float(cands[int(np.argmax([skill_scores(t, q >= c)["TSS"] for c in cands]))])
+
+
+def m_class_scores(y: np.ndarray, p: np.ndarray, cut: float = CLASS_FLOOR["M"]) -> dict:
+    s = skill_scores(y >= CLASS_FLOOR["M"], p >= cut)
     return {k: r4(s[k]) for k in ("TSS", "F1", "HSS", "POD", "FAR", "FB")} | {
         "M_flares": int(np.sum(y >= CLASS_FLOOR["M"])), "C_flares": int(np.sum(y < CLASS_FLOOR["M"]))}
 
@@ -331,9 +360,11 @@ def rmse_diff(y: np.ndarray, a: np.ndarray, b: np.ndarray, t: np.ndarray) -> dic
             "ci95": day_block_ci(t, lambda i: float(np.sqrt(ea[i].mean()) - np.sqrt(eb[i].mean())))}
 
 
-def peak_nowcast(pred: dict, info: list[dict], refs: dict[str, np.ndarray], against: str) -> dict:
-    """Peak-flux scores per true class for the network and each reference, and the
-    network's paired RMSE difference against reference ``against``."""
+def peak_nowcast(pred: dict, info: list[dict], refs: dict[str, np.ndarray], against: str,
+                 cuts: dict[str, float] | None = None) -> dict:
+    """Peak-flux scores per true class for the network and each reference, the
+    network's paired RMSE difference against reference ``against``, and the
+    C vs >= M call at the M1 floor and at each forecast's ``cuts`` (validation)."""
     y = pred["y_peak"][:, 1]
     ok = pred["y_peak_mask"][:, 1] > 0
     t = pred["y_t_unix"]
@@ -350,6 +381,17 @@ def peak_nowcast(pred: dict, info: list[dict], refs: dict[str, np.ndarray], agai
             out[sel_name][g] = {k: peak_scores(y[m], f[m], t[m]) for k, f in forecasts.items()}
     m = ok & np.all([np.isfinite(f) for f in forecasts.values()], axis=0)
     out["C_vs_M"] = {k: m_class_scores(y[m], f[m]) for k, f in forecasts.items()}
+    if cuts:
+        out["C_vs_M_validation_cut"] = {k: {**m_class_scores(y[m], f[m], cuts[k]), "cut": r4(cuts[k])}
+                                        for k, f in forecasts.items() if k in cuts}
+        if "model" in cuts and against in cuts:
+            truth = y[m] >= CLASS_FLOOR["M"]
+            a, b, tm_ = forecasts["model"][m] >= cuts["model"], forecasts[against][m] >= cuts[against], t[m]
+            out["C_vs_M_validation_cut_paired"] = {
+                "reference": against,
+                "TSS_diff": r4(skill_scores(truth, a)["TSS"] - skill_scores(truth, b)["TSS"]),
+                "ci95": day_block_ci(tm_, lambda i: skill_scores(truth[i], a[i])["TSS"]
+                                     - skill_scores(truth[i], b[i])["TSS"])}
     out["paired_vs"] = {"reference": against, **{
         g: rmse_diff(y[m & gm], forecasts["model"][m & gm], forecasts[against][m & gm], t[m & gm])
         for g, gm in groups.items()}}
@@ -391,6 +433,18 @@ def render_peak(r: dict) -> str:
                  f"{_n(v['FAR'], '.3f')} | {_n(v['FB'], '.2f')} |")
     L.append(f"| paper (arXiv 2608.20062, as reported) | {PAPER['C_vs_M']['TSS']} | {PAPER['C_vs_M']['F1']} "
              "| | | | |")
+    if s.get("C_vs_M_validation_cut"):
+        L += ["", f"Same call with each forecast's cut-off chosen on the {r['validation_flares']:,} validation-period "
+              f"flares (best TSS; {r['validation_period'][0]} -> {r['validation_period'][1]}), then held fixed:", "",
+              "| Forecast | cut-off (GOES class) | TSS | F1 | HSS | POD | FAR | FB |",
+              "|---|---|---:|---:|---:|---:|---:|---:|"]
+        for k, v in s["C_vs_M_validation_cut"].items():
+            L.append(f"| {names[k]} | {goes_class(v['cut'])} | {_n(v['TSS'], '.3f')} | {_n(v['F1'], '.3f')} | "
+                     f"{_n(v['HSS'], '.3f')} | {_n(v['POD'], '.3f')} | {_n(v['FAR'], '.3f')} | {_n(v['FB'], '.2f')} |")
+        pd_ = s.get("C_vs_M_validation_cut_paired")
+        if pd_:
+            L += ["", f"Network minus {names[pd_['reference']]}, same flares: TSS {_n(pd_['TSS_diff'], '+.3f')} "
+                  f"{_ci(pd_['ci95'])} (95%, resampling days)."]
     if r.get("common_period"):
         c = r["common_period"]
         L += ["", f"## Baseline vs final, same flares ({c['period'][0]} -> {c['period'][1]})", "",
@@ -580,6 +634,14 @@ def write_index(folder: Path) -> Path:
                 f"TSS {_n(f['C_vs_M']['model']['TSS'])}, F1 {_n(f['C_vs_M']['model']['F1'])} (paper as reported "
                 f"{PAPER['C_vs_M']['TSS']}, {PAPER['C_vs_M']['F1']}). Different data and period: see the "
                 "report's caveats."]
+        vc = f.get("C_vs_M_validation_cut")
+        if vc:
+            m_, g_ = vc["model"], vc["goes_now_plus_rise"]
+            pd_ = f.get("C_vs_M_validation_cut_paired") or {}
+            L.append(f"- C vs >= M with the cut-off chosen on {p['validation_flares']:,} validation flares: network "
+                     f"TSS {_n(m_['TSS'])}, F1 {_n(m_['F1'])}, FB {_n(m_['FB'], '.2f')} (calls M above "
+                     f"{goes_class(m_['cut'])}); 'GOES now + typical rise' TSS {_n(g_['TSS'])}, F1 {_n(g_['F1'])}; "
+                     f"difference {_n(pd_.get('TSS_diff'), '+.3f')} {_ci(pd_.get('ci95'))}.")
         pv = f["paired_vs"]
         L.append("- Network minus 'GOES at +3 min + typical rise', same flares: "
                  + "; ".join(f"{g} {_n(pv[g]['diff'], '+.3f')} {_ci(pv[g]['ci95'])}"
@@ -683,11 +745,16 @@ def main(argv=None) -> int:
         sets["final"].update(val=prep.splits["val"], test=prep.splits["test"])
     windows = prep.windows
     onset_info = []
+    val_period = None
     if "peak" in todo:
         extra, onset_info = onset_windows(prep, cfg, fin_start)
-        windows = list(prep.windows) + extra
-        onset = list(range(len(prep.windows), len(windows)))
+        tv = [prep.windows[i].t_unix for i in prep.splits["val"]]
+        val_period = (min(tv), max(tv))
+        extra_val, _ = onset_windows(prep, cfg, *val_period)
+        windows = list(prep.windows) + extra + extra_val
+        onset = list(range(len(prep.windows), len(prep.windows) + len(extra)))
         sets["final"]["onset"] = onset
+        sets["final"]["onset_val"] = list(range(len(prep.windows) + len(extra), len(windows)))
         sets["baseline"]["onset"] = onset
     preds = {}
     for name in ("final", "baseline"):
@@ -712,13 +779,25 @@ def main(argv=None) -> int:
     if "peak" in todo:
         p = preds["final"]["onset"]
         rise = typical_rise(prep, cfg, runs["final"]["train_end"])
-        goes_now = p["y_persistence"].astype(np.float64)
-        goes_now[p["y_nowcast_mask"] <= 0] = np.nan
-        slx, _ = solexs_no_change(prep, p["y_t_unix"])
-        refs = {"goes_now": goes_now, "goes_now_plus_rise": goes_now + rise,
-                "solexs_now": slx, "solexs_now_plus_rise": slx + rise}
+
+        def references(q: dict) -> dict[str, np.ndarray]:
+            now = q["y_persistence"].astype(np.float64)
+            now[q["y_nowcast_mask"] <= 0] = np.nan
+            slx, _ = solexs_no_change(prep, q["y_t_unix"])
+            return {"goes_now": now, "goes_now_plus_rise": now + rise, "solexs_now": slx,
+                    "solexs_now_plus_rise": slx + rise}
+
+        refs = references(p)
+        goes_now = refs["goes_now"]
+        pv = preds["final"]["onset_val"]
+        ok_v = pv["y_peak_mask"][:, 1] > 0
+        yv = pv["y_peak"][ok_v, 1]
+        cuts = {k: m_cut(yv, f[ok_v]) for k, f in {"model": pv["peak"][:, 1], **references(pv)}.items()}
         r = {"generated_utc": stamp, "period": period, "typical_rise_dex": round(rise, 4), "paper": PAPER,
-             "final_test_period": peak_nowcast(p, onset_info, refs, "goes_now_plus_rise")}
+             "validation_period": [utc(val_period[0], "%Y-%m-%d"), utc(val_period[1], "%Y-%m-%d")],
+             "validation_flares": int(ok_v.sum()), "validation_M_flares": int(np.sum(yv >= CLASS_FLOOR["M"])),
+             "M_cut_offs": {k: r4(v) for k, v in cuts.items()},
+             "final_test_period": peak_nowcast(p, onset_info, refs, "goes_now_plus_rise", cuts)}
         pb = preds["baseline"]["onset"]
         in_common = p["y_t_unix"] >= runs["baseline"]["test_start"]
         if in_common.any():

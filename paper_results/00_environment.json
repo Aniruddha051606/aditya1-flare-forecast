@@ -1,0 +1,40 @@
+{
+  "provenance": {
+    "generated_utc": "2026-09-25 19:39:25",
+    "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278+uncommitted-changes",
+    "python": "3.14.7",
+    "script": "environment.py"
+  },
+  "git": {
+    "commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278",
+    "branch": "main",
+    "uncommitted_tracked_changes": true,
+    "remotes": [
+      "https://github.com/Aniruddha051606/aditya1-flare-forecast.git",
+      "https://github.com/bhairavnathaerospace/aditya1-flare-forecast.git"
+    ]
+  },
+  "python": "3.14.7",
+  "os": "Windows-11-10.0.26200-SP0",
+  "machine": "AMD64",
+  "packages": {
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "pandas": "3.0.5",
+    "torch": "2.14.0+cu130",
+    "astropy": "8.0.1",
+    "scikit-learn": "1.9.1",
+    "matplotlib": "3.11.2",
+    "netCDF4": null,
+    "h5py": "3.16.0",
+    "pyflakes": "3.4.0",
+    "ruff": "0.16.7"
+  },
+  "gpu": {
+    "cuda_available": true,
+    "cuda": "13.0",
+    "device": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+    "memory_GB": 6.4
+  },
+  "settings_file": "config/project.toml"
+}

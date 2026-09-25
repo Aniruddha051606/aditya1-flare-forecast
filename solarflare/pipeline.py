@@ -21,7 +21,7 @@ from .config import Config
 from .preprocess.cache import build_cache, index_sources, load_cached, mask_intervals, Source
 from .preprocess.dataset import (
     build_segments_from_raw, enumerate_windows, chronological_split,
-    fit_normalizer, resolve_split_mode, span_days, thin_quiet_training_windows,
+    fit_normalizer, instrument_windows, resolve_split_mode, span_days, thin_quiet_training_windows,
     Segment, WindowIndex, Normalizer,
 )
 from .torch_data import FlareWindows, GatherBatches, shared_arrays
@@ -140,6 +140,13 @@ def prepare(cfg: Config, verbose: bool = True) -> Prepared:
     if archive:
         tr = thin_quiet_training_windows(segments, windows, tr, cfg)
     norm = fit_normalizer(segments, windows, tr, cfg)
+    # A single-instrument model (model.inputs) keeps the split, its dates, the
+    # normaliser and the flux anchor of the two-instrument one, and only the
+    # windows its instrument observed.
+    split_tr, split_te = tr, te
+    inputs = getattr(cfg.model, "inputs", "both")
+    if inputs != "both":
+        tr, va, te = (instrument_windows(segments, windows, ix, cfg, inputs) for ix in (tr, va, te))
 
     meta = dict(meta)
     n_events = sum(len(s.events) for s in segments)
@@ -148,6 +155,7 @@ def prepare(cfg: Config, verbose: bool = True) -> Prepared:
         "archive_mode": archive,
         "archive_profile": {k: list(v) for k, v in profile.items()},
         "split_mode": mode,
+        "inputs": inputs,
         "n_sources": len(sources),
         "excluded_solexs_samples": n_masked,
         "cache": {
@@ -177,13 +185,13 @@ def prepare(cfg: Config, verbose: bool = True) -> Prepared:
             for s in segments for e in s.events
         ],
     })
-    if mode == "global" and tr and te:
+    if mode == "global" and split_tr and split_te:
         meta["split_dates"] = {
-            "train_end": float(windows[tr[-1]].t_unix) if tr else None,
-            "test_start": float(min(windows[i].t_unix for i in te)),
+            "train_end": float(windows[split_tr[-1]].t_unix),
+            "test_start": float(min(windows[i].t_unix for i in split_te)),
         }
     if cfg.pre.fit_flux_anchor and cfg.pre.label_source == "goes":
-        train_end = max(windows[i].t_unix for i in tr) if tr else None
+        train_end = max(windows[i].t_unix for i in split_tr) if split_tr else None
         fit = fit_flux_anchor(segments, train_end)
         if fit:
             cfg.pre.flux_anchor_intercept, cfg.pre.flux_anchor_slope = fit["intercept"], fit["slope"]

@@ -131,6 +131,10 @@ X-ray spectra (`hxr-spectra`), the sub-second timing study (`hxr-timing`) and th
 (`temperature`). Those stages read `events/evt.fits` straight out of each product's zip for the
 minutes around a flare (about a second per product), so nothing is extracted for them. Unpacked,
 the event lists alone would need ~460 GB. Delete the zips and these three products are lost.
+A few storm-day products are far larger (HLS_20251112_000006 holds a 9.3 GB event list); event
+lists over 512 MB are unpacked one at a time to a scratch file in the system temporary folder
+(or `SOLARFLARE_SCRATCH`), memory-mapped, and deleted when the next is needed. Reading one now
+costs under 1 GB of memory instead of 9-12 GB.
 
 #### Protecting the cache
 
@@ -146,6 +150,16 @@ python scripts/ingest_batch.py --backup E:/cache-backup # copy it somewhere else
 A hole is never fatal as long as the zips are there: re-running `ingest_batch.py` notices that an
 entry's `.npz` has gone and rebuilds just that product. The zips are the real thing to protect; the
 cache is a few hundred MB and cheap to keep a second copy of, ideally on another drive.
+
+#### Freezing the study data
+
+Every command that loads the archive re-scans `data_root` and caches anything new, so a day
+downloaded after training would slip into the study and move the chronological split under every
+published number. Once the final model is trained the cache carries a `cache/FROZEN` file: while it
+exists, no command adds products the cache has never held (a missing `.npz` for a product it does
+hold is still rebuilt), and `ingest_batch.py` refuses to ingest, with a pointer to a separate
+cache. New days go through their own cache and `--extra-cache` / `--cache-dir` (see "Forecasting
+new days"). Delete the file only to extend the study, which means retraining and re-evaluating.
 
 ---
 
@@ -197,9 +211,10 @@ freeze, predict, report, baselines) reload that run's own `reports/config.json`.
 
 - `python -m solarflare day-forecast --day YYYY-MM-DD [--extra-cache DIR]` writes a sealed
   (SHA-256) probability of a >= C1 and a >= M1 flare for that UTC day, from the latest SoLEXS data
-  and the frozen day models. No GOES is read, and a day is never re-issued. Keep new downloads out
-  of the main cache (it would move the train/test split): cache them into their own folder with
-  `python -m solarflare cache --data-root NEW --cache-dir NEW_CACHE` and pass that as `--extra-cache`.
+  and the frozen day models. No GOES is read, and a day is never re-issued. New downloads stay out
+  of the study cache (`cache/FROZEN`, see "Freezing the study data"): cache them into their own
+  folder with `python -m solarflare cache --data-root NEW --cache-dir NEW_CACHE` and pass that as
+  `--extra-cache`.
 - `python -m solarflare day-forecast --score --goes-dir NEWER_GOES --out FOLDER` checks every sealed
   forecast's SHA-256 and scores it against GOES once GOES covers its day (`SCORES.md`). Download
   newer GOES into a dated folder so the study's `goes_dir` stays as it was.

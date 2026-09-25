@@ -213,6 +213,50 @@ def test_goes_labels_end_to_end():
         check("label_source='solexs' still uses the detector (both injected flares)", n2 >= 2, str(n2))
 
 
+def test_goes_never_reaches_the_model_inputs():
+    """GOES is the truth, never an input: the same Aditya-L1 data labelled with two
+    different GOES records must give identical model inputs (features, masks,
+    clock, windows, split, normaliser) and differ only in the targets."""
+    from solarflare.pipeline import prepare
+    from solarflare.torch_data import normalized_inputs
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        _make_solexs(root / "data" / "slx", n=20000, flares=((3600, 600, 900, 120),), t0=T0)
+        preps = []
+        for name, flares, level in (("a", [(10, T0 + 3000, T0 + 3600, T0 + 4500, "M1.5", 1e-6)], 1e-6),
+                                    ("b", [(20, T0 + 9000, T0 + 9400, T0 + 9900, "X2.0", 1e-5),
+                                           (21, T0 + 15000, T0 + 15100, T0 + 15600, "C3.0", 1e-6)], 4e-6)):
+            gdir = root / f"goes_{name}"
+            gdir.mkdir()
+            write_flsum(gdir / "sci_xrsf-l2-flsum_g18_test.nc", flares)
+            write_avg1m(gdir / "sci_xrsf-l2-avg1m_g18_test.nc", T0 - 600, 360,
+                        lambda t, _lv=level: _lv * (1.0 + (t - T0) / 1e5))
+            cfg = Config(data_root=root / "data", out_dir=root / f"out_{name}")
+            cfg.pre.dt_seconds = 60.0
+            cfg.pre.background_window_s = 7200.0
+            cfg.win.input_seconds = 1200.0
+            cfg.win.stride_seconds = 120.0
+            cfg.win.forecast_horizons_s = (60.0, 300.0)
+            cfg.win.occurrence_horizons_s = (300.0,)
+            cfg.train.device = "cpu"
+            cfg.pre.label_source = "goes"
+            cfg.pre.goes_dir = str(gdir)
+            preps.append(prepare(cfg, verbose=False))
+        a, b = preps
+        same = all(np.array_equal(getattr(sa, k), getattr(sb, k), equal_nan=True)
+                   for sa, sb in zip(a.segments, b.segments)
+                   for k in ("time_unix", "soft", "soft_mask", "hard", "hard_mask", "clock"))
+        check("two GOES records give identical input features, masks and clock",
+              same and len(a.segments) == len(b.segments))
+        check("...identical windows and split", [(w.seg, w.end) for w in a.windows] == [(w.seg, w.end) for w in b.windows]
+              and a.splits == b.splits)
+        na, nb = normalized_inputs(a.segments, a.norm), normalized_inputs(b.segments, b.norm)
+        check("...and identical normalised inputs", all(np.array_equal(x, y) for k in ("soft", "hard")
+                                                        for x, y in zip(na[k], nb[k])))
+        check("while the targets do differ (the test would notice a swap)",
+              not all(np.array_equal(sa.log_flux, sb.log_flux) for sa, sb in zip(a.segments, b.segments)))
+
+
 def test_truncated_rise_skipped():
     from solarflare.io.goes import GoesFlare
     from solarflare.preprocess.events import build_rise_dataset

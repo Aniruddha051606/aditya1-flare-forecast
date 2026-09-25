@@ -1,0 +1,11 @@
+{
+  "figure": "fig08_leadtime",
+  "caption": "Lead time of the E4 alerts on the test period, per flare. 'E4 network or SoLEXS now' is the M1 alert that fires on the higher of the network's M1 signal and the calibrated SoLEXS flux now; 'SoLEXS trend' extrapolates that flux 15 min along its last-5-min rise. Each curve is the fraction of all test flares warned at least the given time before the GOES peak (unwarned flares never count), so its value at zero is the detection rate; legend: flares warned / flares. Every method runs at the threshold giving 2 (>= C1 alerts) and 0.5 (M1 alerts) false alarms per day on the validation period (150.2 test days with data, 2026-03-30 04:53 to 2026-09-21 00:00 UTC). Definitions: solarflare/products/leadtime.py.",
+  "sources": [
+    "paper_results/leadtime_events.csv",
+    "paper_results/leadtime_source.json"
+  ],
+  "script": "paper_results/plotting/fig08_leadtime.py",
+  "generated_utc": "2026-09-25 19:57:34",
+  "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278"
+}

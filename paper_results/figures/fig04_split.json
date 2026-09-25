@@ -1,0 +1,11 @@
+{
+  "figure": "fig04_split",
+  "caption": "Top: the chronological split used by every experiment. Middle and bottom: daily observing time of SoLEXS and HEL1OS in the frozen study data (union of 20 s bins with data); dashed lines mark the split boundaries. Split: training 2023-12-01 to 2025-08-07, validation 2025-09-03 to 2026-03-03, test 2026-03-30 to 2026-09-21. Between the blocks are the 27-day embargoes; windows inside them are used by no split. training 307,030 windows, validation 120,062 windows, test 118,622 windows.",
+  "sources": [
+    "paper_results/02_experiment_split.json",
+    "cache/manifest.json (+ cached coverage)"
+  ],
+  "script": "paper_results/plotting/fig04_split.py",
+  "generated_utc": "2026-09-25 20:15:36",
+  "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278"
+}

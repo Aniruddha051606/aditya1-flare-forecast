@@ -1,0 +1,12 @@
+{
+  "figure": "fig02_example_event",
+  "caption": "An X2.5 flare on 2026-04-24 (GOES start 08:01, peak 08:13, end 08:18 UTC) seen by GOES-18 XRS-B (top, 1-min flux; reference only, never a model input), SoLEXS (middle) and HEL1OS CZT1+CZT2 (bottom), both as the 20 s rates the model is built from. Chosen by a fixed rule: the highest-peak GOES flare of the test period with both instruments observing at least 90% of the interval from 30 min before its start to 30 min after its end.",
+  "sources": [
+    "GOES-18 XRS avg1m (goes_dir)",
+    "cache/ (frozen study cache)",
+    "paper_results/02_experiment_split.json"
+  ],
+  "script": "paper_results/plotting/fig02_example_event.py",
+  "generated_utc": "2026-09-25 20:15:31",
+  "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278"
+}

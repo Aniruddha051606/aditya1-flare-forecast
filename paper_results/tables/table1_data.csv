@@ -1,0 +1,4 @@
+instrument,role,band,study data,observed days,native cadence,model grid,model features
+SoLEXS (Aditya-L1),model input,soft X-ray,831 days,764.9,"1 s light curve, 340-channel spectra",20 s,24
+HEL1OS (Aditya-L1),model input,hard X-ray,2668 products,968.4,1 s light curves (readout batches 2-8 s),20 s,48
+GOES-18 XRS,"truth only (labels, flux target, scoring)",0.1-0.8 nm,8511 labelled flares >= C1.0,,1 min,20 s (targets),0

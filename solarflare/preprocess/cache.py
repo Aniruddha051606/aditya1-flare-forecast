@@ -167,6 +167,22 @@ def cached_without_source(old: dict, entries: list[dict], cache_dir: Path) -> li
     return out
 
 
+#: A file of this name in a cache folder freezes it: build_cache then adds no new
+#: products, though it still rebuilds a missing file for a product it holds. The
+#: study cache carries one once the final model is trained, so that downloading
+#: new days into data_root cannot silently change the data every result was
+#: computed on (and move the chronological split).
+FROZEN_MARKER = "FROZEN"
+
+
+def cache_frozen(cache_dir: Path) -> bool:
+    return (Path(cache_dir) / FROZEN_MARKER).exists()
+
+
+def _same_path(p) -> str:
+    return os.path.normcase(os.path.abspath(str(p)))
+
+
 def check_sources_present(sources: list[Source], old_entries: list[dict],
                           cache_is_source: bool = False,
                           cache_dir: Path | None = None) -> None:
@@ -331,6 +347,7 @@ def build_cache(sources: list[Source], cfg: PreprocessConfig, cache_dir: Path,
 
     Previously cached entries are reused without touching the source file.
     ``workers`` bounds memory: each worker peaks around 1.5 GB on a SoLEXS day.
+    In a frozen cache (FROZEN_MARKER) sources it has never held are left out.
     """
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -347,7 +364,13 @@ def build_cache(sources: list[Source], cfg: PreprocessConfig, cache_dir: Path,
 
     entries: list[dict] = []
     todo: list[tuple[Source, str]] = []
+    frozen = cache_frozen(cache_dir)
+    known = {_same_path(e.get("source", {}).get("path", "")) for e in old.values()}
+    not_added = 0
     for src in sources:
+        if frozen and _same_path(src.path) not in known:
+            not_added += 1
+            continue
         try:
             key = cache_key(src, cfg)
         except OSError as exc:  # vanished mid-download, permissions, ...
@@ -364,6 +387,11 @@ def build_cache(sources: list[Source], cfg: PreprocessConfig, cache_dir: Path,
     if verbose:
         print(f"cache: {len(sources)} sources, {len(entries)} up to date, "
               f"{len(todo)} to process with {workers} worker(s)")
+        if not_added:
+            print(f"cache: {not_added} new product(s) not added: this cache is frozen "
+                  f"({cache_dir / FROZEN_MARKER}). Cache new days into their own folder "
+                  "(python -m solarflare cache --data-root NEW --cache-dir NEW_CACHE); delete the "
+                  "marker only to extend the study, which means retraining and re-evaluating.")
 
     def _save_manifest():
         # Keep entries built under other settings (another energy scale, a

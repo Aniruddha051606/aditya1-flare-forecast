@@ -1,0 +1,611 @@
+{
+  "provenance": {
+    "generated_utc": "2026-09-25 20:27:49",
+    "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278+uncommitted-changes",
+    "python": "3.14.7",
+    "script": "manifest.py"
+  },
+  "repository": {
+    "commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278",
+    "branch": "main",
+    "uncommitted_tracked_changes": true,
+    "remotes": [
+      "https://github.com/Aniruddha051606/aditya1-flare-forecast.git",
+      "https://github.com/bhairavnathaerospace/aditya1-flare-forecast.git"
+    ]
+  },
+  "environment": {
+    "python": "3.14.7",
+    "os": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "packages": {
+      "numpy": "2.5.3",
+      "scipy": "1.18.1",
+      "pandas": "3.0.5",
+      "torch": "2.14.0+cu130",
+      "astropy": "8.0.1",
+      "scikit-learn": "1.9.1",
+      "matplotlib": "3.11.2",
+      "netCDF4": null,
+      "h5py": "3.16.0",
+      "pyflakes": "3.4.0",
+      "ruff": "0.16.7"
+    },
+    "gpu": {
+      "cuda_available": true,
+      "cuda": "13.0",
+      "device": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+      "memory_GB": 6.4
+    }
+  },
+  "settings_file": "config/project.toml",
+  "settings_sha256": "a111fd656297aeb1f2f0a8378504015c156a32dcbcc87f1dd6ae3c1b8b77c936",
+  "scope": "Paper 1: SoLEXS + HEL1OS inputs, GOES-18 XRS truth only. SUIT excluded.",
+  "data": {
+    "data_root": "D:\\Data",
+    "study_cache": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\cache",
+    "study_cache_frozen": true,
+    "study_cache_manifest_sha256": "e0fdc0effb1d8e4d414568d7da504798da77d316979fc34b9835dcd319da175b",
+    "goes_dir": "D:\\Data\\goes",
+    "goes_files": [
+      "sci_xrsf-l2-avg1m_g18_y2023_v2-2-1.nc",
+      "sci_xrsf-l2-avg1m_g18_y2024_v2-2-1.nc",
+      "sci_xrsf-l2-avg1m_g18_y2025_v2-2-1.nc",
+      "sci_xrsf-l2-avg1m_g18_y2026_v2-2-1.nc",
+      "sci_xrsf-l2-flsum_g18_s20220617_e20260921_v2-2-1.nc"
+    ],
+    "inventory": "paper_results/01_data_inventory.json"
+  },
+  "split": {
+    "file": "paper_results/02_experiment_split.json",
+    "mode": "global",
+    "fractions": [
+      0.6,
+      0.2,
+      0.2
+    ],
+    "embargo_days": 27.0,
+    "periods": {
+      "train": [
+        "2023-12-01 01:59:20",
+        "2025-08-07 20:49:40"
+      ],
+      "val": [
+        "2025-09-03 20:59:40",
+        "2026-03-03 03:51:40"
+      ],
+      "test": [
+        "2026-03-30 03:53:40",
+        "2026-09-21 22:59:40"
+      ]
+    },
+    "checks": {
+      "same_split_as_recorded_at_training": true,
+      "splits_disjoint": true,
+      "chronological": true,
+      "gap_train_to_val_days": 27.01,
+      "gap_val_to_test_days": 27.0,
+      "embargo_days": 27.0,
+      "gaps_at_least_embargo": true,
+      "no_input_or_target_span_crosses_a_split": true,
+      "input_window_s": 7200.0,
+      "longest_horizon_s": 3600.0
+    }
+  },
+  "seeds": {
+    "training": {
+      "E1": 1337,
+      "E2": null,
+      "E4": 1337
+    },
+    "bootstrap": null
+  },
+  "experiments": {
+    "E1": {
+      "run": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\outputs\\paper\\E1_solexs_only",
+      "status": "not finished",
+      "inputs": "soft",
+      "config_sha256": "2c7b99e7ef9f9e77a81892b56e6142fdca457a4f6e00b2536810265c721bd4ed",
+      "model": {
+        "hidden": 64,
+        "dilations": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel_size": 3,
+        "dropout": 0.1,
+        "modality_dropout": 0.25,
+        "attn_heads": 4,
+        "n_phase_classes": 4,
+        "ssm_layers": 4,
+        "ssm_state": 8,
+        "rnn_layers": 2,
+        "tf_layers": 3,
+        "anchor_flux": true,
+        "patch_len": 20,
+        "use_clock": false,
+        "inputs": "soft"
+      },
+      "training": {
+        "epochs": 60,
+        "batch_size": 64,
+        "lr": 0.002,
+        "weight_decay": 0.0001,
+        "warmup_frac": 0.05,
+        "grad_clip": 1.0,
+        "seed": 1337,
+        "device": "auto",
+        "torch_threads": 0,
+        "split": [
+          0.6,
+          0.2,
+          0.2
+        ],
+        "embargo_s": 3600.0,
+        "global_embargo_s": 2332800.0,
+        "early_stop_patience": 15,
+        "select_smooth_epochs": 3,
+        "balance_head_gradients": true,
+        "split_mode": "auto",
+        "max_batches_per_epoch": 400,
+        "large_max_batches_per_epoch": 400,
+        "loader": "gather",
+        "eval_batch_size": 1024,
+        "focal_gamma": 2.0,
+        "w_phase": 1.0,
+        "w_occurrence": 1.0,
+        "w_nowcast": 1.0,
+        "w_forecast": 1.0
+      },
+      "window": {
+        "input_seconds": 7200.0,
+        "stride_seconds": 120.0,
+        "forecast_horizons_s": [
+          60.0,
+          300.0,
+          900.0,
+          1800.0,
+          3600.0
+        ],
+        "quantiles": [
+          0.1,
+          0.5,
+          0.9
+        ],
+        "occurrence_horizons_s": [
+          900.0,
+          1800.0,
+          3600.0
+        ],
+        "min_observed_fraction": 0.5,
+        "large_data_days": 30.0,
+        "large_stride_seconds": 120.0,
+        "quiet_train_stride_seconds": 600.0
+      },
+      "preprocessing": {
+        "dt_seconds": 20.0,
+        "label_source": "goes",
+        "goes_min_class": "C1.0",
+        "solexs_energy_scale": "sarwade2025",
+        "hel1os_smooth_s": 60.0,
+        "cache_is_source": true
+      }
+    },
+    "E2": {
+      "run": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\outputs\\paper\\E2_hel1os_only",
+      "status": "not finished",
+      "inputs": null
+    },
+    "E4": {
+      "run": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\outputs\\model",
+      "status": "trained",
+      "inputs": "both",
+      "config_sha256": "725a4d39180c42485befb1e1508f72470846998962e53502131739fdd536f516",
+      "model": {
+        "hidden": 64,
+        "dilations": [
+          1,
+          2,
+          4,
+          8,
+          16,
+          32,
+          64,
+          128
+        ],
+        "kernel_size": 3,
+        "dropout": 0.1,
+        "modality_dropout": 0.25,
+        "attn_heads": 4,
+        "n_phase_classes": 4,
+        "ssm_layers": 4,
+        "ssm_state": 8,
+        "rnn_layers": 2,
+        "tf_layers": 3,
+        "anchor_flux": true,
+        "patch_len": 20,
+        "use_clock": false
+      },
+      "training": {
+        "epochs": 60,
+        "batch_size": 64,
+        "lr": 0.002,
+        "weight_decay": 0.0001,
+        "warmup_frac": 0.05,
+        "grad_clip": 1.0,
+        "seed": 1337,
+        "device": "auto",
+        "torch_threads": 0,
+        "split": [
+          0.6,
+          0.2,
+          0.2
+        ],
+        "embargo_s": 3600.0,
+        "global_embargo_s": 2332800.0,
+        "early_stop_patience": 15,
+        "select_smooth_epochs": 3,
+        "balance_head_gradients": true,
+        "split_mode": "auto",
+        "max_batches_per_epoch": 400,
+        "large_max_batches_per_epoch": 400,
+        "loader": "gather",
+        "eval_batch_size": 1024,
+        "focal_gamma": 2.0,
+        "w_phase": 1.0,
+        "w_occurrence": 1.0,
+        "w_nowcast": 1.0,
+        "w_forecast": 1.0
+      },
+      "window": {
+        "input_seconds": 7200.0,
+        "stride_seconds": 120.0,
+        "forecast_horizons_s": [
+          60.0,
+          300.0,
+          900.0,
+          1800.0,
+          3600.0
+        ],
+        "quantiles": [
+          0.1,
+          0.5,
+          0.9
+        ],
+        "occurrence_horizons_s": [
+          900.0,
+          1800.0,
+          3600.0
+        ],
+        "min_observed_fraction": 0.5,
+        "large_data_days": 30.0,
+        "large_stride_seconds": 120.0,
+        "quiet_train_stride_seconds": 600.0
+      },
+      "preprocessing": {
+        "dt_seconds": 20.0,
+        "label_source": "goes",
+        "goes_min_class": "C1.0",
+        "solexs_energy_scale": "sarwade2025",
+        "hel1os_smooth_s": 60.0,
+        "cache_is_source": true
+      },
+      "checkpoint_sha256": "e6854b21dc185274867deb4c847aa118523b80c3480bc5009998bf5a7ca786cf",
+      "evaluation_sha256": "aec674dc1c5b05dc16dc36f4ab048b3bf8659f475c4c46653a92a1c4a0762cd0"
+    }
+  },
+  "evaluation": "not yet run",
+  "commands": {
+    "E1": "python -m solarflare train --from-run outputs/model --out-dir outputs/paper/E1_solexs_only --set model.inputs=soft",
+    "E2": "python -m solarflare train --from-run outputs/model --out-dir outputs/paper/E2_hel1os_only --set model.inputs=hard",
+    "E4": "python -m solarflare pipeline (stage train; outputs/model)",
+    "all paper results": "python scripts/paper/run_all_paper_experiments.py"
+  },
+  "scripts": {
+    "results": [
+      "scripts/paper/common.py",
+      "scripts/paper/data_and_split.py",
+      "scripts/paper/environment.py",
+      "scripts/paper/evaluate_experiments.py",
+      "scripts/paper/leadtime_tables.py",
+      "scripts/paper/make_tables.py",
+      "scripts/paper/manifest.py",
+      "scripts/paper/paper_metrics.py",
+      "scripts/paper/test_status.py"
+    ],
+    "figures": [
+      "paper_results/plotting/fig01_pipeline.py",
+      "paper_results/plotting/fig02_example_event.py",
+      "paper_results/plotting/fig03_architecture.py",
+      "paper_results/plotting/fig04_split.py",
+      "paper_results/plotting/fig05_horizon.py",
+      "paper_results/plotting/fig06_comparison.py",
+      "paper_results/plotting/fig07_reliability.py",
+      "paper_results/plotting/fig08_leadtime.py",
+      "paper_results/plotting/fig09_example_forecast.py",
+      "paper_results/plotting/fig10_robustness.py"
+    ],
+    "tables": [
+      "scripts/paper/make_tables.py"
+    ]
+  },
+  "outputs": [
+    {
+      "path": "paper_results/00_environment.json",
+      "bytes": 1103,
+      "sha256": "c9648ee7d9a85349bf9b831e0aed47ac20ab0320481d553e08bfc178bdb0824a"
+    },
+    {
+      "path": "paper_results/00_repository_audit.md",
+      "bytes": 9957,
+      "sha256": "b53363dde9c65c7863327928152f16f62214df6a3ba7ef3dc88717817b9deb26"
+    },
+    {
+      "path": "paper_results/01_data_inventory.json",
+      "bytes": 15174,
+      "sha256": "ebf77da6da4a0e5ad7382deaa620131e7323795bf2b5e1c38faa0cca47508c8a"
+    },
+    {
+      "path": "paper_results/01_data_inventory.md",
+      "bytes": 2477,
+      "sha256": "b1325299b6c471b8d7b02adda3c9bcebe0a9ffcd6c95332b98d8106fa7309eff"
+    },
+    {
+      "path": "paper_results/02_experiment_split.json",
+      "bytes": 4251,
+      "sha256": "b4f4ae245f4fca6b64cfc0ae5adda5885c255688041cb05aff8dce2cb7fff09e"
+    },
+    {
+      "path": "paper_results/02_experiment_split.md",
+      "bytes": 1408,
+      "sha256": "cd49cc8e681818c98ec97108e580c401e3683a265b33ac00fa6886daa3855a4d"
+    },
+    {
+      "path": "paper_results/02b_leakage_prevention.md",
+      "bytes": 6609,
+      "sha256": "a46c7eeef122016dc1653dd51682fa7fa9153a5f20dcdd78ab4bb22543e91da4"
+    },
+    {
+      "path": "paper_results/03_test_status.md",
+      "bytes": 1648,
+      "sha256": "f0735c8b706516284235a9a8ba93b046c5fe44a5a41f5ddf0aae0b8d8e260551"
+    },
+    {
+      "path": "paper_results/figures/fig01_pipeline.json",
+      "bytes": 887,
+      "sha256": "624b7f975bf1d8feca9bd9939e5621ae609268d6948443439d7e7895649f9156"
+    },
+    {
+      "path": "paper_results/figures/fig01_pipeline.pdf",
+      "bytes": 21458,
+      "sha256": "204dba17f7d1e78319597910ed1cc70f3b0b8407df4d9b0359b23dc3b81403dc"
+    },
+    {
+      "path": "paper_results/figures/fig01_pipeline.png",
+      "bytes": 145305,
+      "sha256": "de4a0483b4670470b9a373df077d27e2da3b542bd9aab8ac28cd0278d19354cd"
+    },
+    {
+      "path": "paper_results/figures/fig02_example_event.json",
+      "bytes": 796,
+      "sha256": "a1782a9f034b850942c9abf3d53dc2044201ea851b7e46eff039f957a195bda7"
+    },
+    {
+      "path": "paper_results/figures/fig02_example_event.pdf",
+      "bytes": 26400,
+      "sha256": "dcd967e7252e1bac084992e6802e846d81137072834b4e301c9435d01d038162"
+    },
+    {
+      "path": "paper_results/figures/fig02_example_event.png",
+      "bytes": 231382,
+      "sha256": "8a67e136879e6430a1c2ef8919b4e714d739f6d3656b77264573b0646145c595"
+    },
+    {
+      "path": "paper_results/figures/fig03_architecture.json",
+      "bytes": 1009,
+      "sha256": "861df4c7a72221e7d671b53d611030aa9fe4ba30e9d31aff2d080b54515cb237"
+    },
+    {
+      "path": "paper_results/figures/fig03_architecture.pdf",
+      "bytes": 21204,
+      "sha256": "7310be7fba3e00362e6fe7234f4d0f9d2cda314e9fc4cd67c632664f58ea8f51"
+    },
+    {
+      "path": "paper_results/figures/fig03_architecture.png",
+      "bytes": 172142,
+      "sha256": "4ab3a52158e54f7b1152fb261c9c5e8019679f44275f4f4464646503028b230b"
+    },
+    {
+      "path": "paper_results/figures/fig04_split.json",
+      "bytes": 808,
+      "sha256": "12b44a95b7eeec782fd94f072e040c1b81cb3ed994aad47e769bd0a84d9c275e"
+    },
+    {
+      "path": "paper_results/figures/fig04_split.pdf",
+      "bytes": 80339,
+      "sha256": "a466667db2b4b0247069eed6b14c476807ea40c4b1e15f543b2bdf3ef49b5623"
+    },
+    {
+      "path": "paper_results/figures/fig04_split.png",
+      "bytes": 85076,
+      "sha256": "a6a522cbf5dc5cbc0a71d36fa5f226edc99d67291ab717148588098eea0f84ca"
+    },
+    {
+      "path": "paper_results/figures/fig08_leadtime.json",
+      "bytes": 1026,
+      "sha256": "777f60d5e73f5a42e186b9fbae1ac2a836f944ae43ceb579ddf00386df86b619"
+    },
+    {
+      "path": "paper_results/figures/fig08_leadtime.pdf",
+      "bytes": 22312,
+      "sha256": "19da73c07a90c879166b9efc47d75ec6c477d45709f291e7dbb48d5283ff31c5"
+    },
+    {
+      "path": "paper_results/figures/fig08_leadtime.png",
+      "bytes": 141057,
+      "sha256": "0447619d9fe61101f810ed5d46b248cb88e4d61d640934ec2174cd927d2c1544"
+    },
+    {
+      "path": "paper_results/figures/fig09_example_forecast.json",
+      "bytes": 1273,
+      "sha256": "a2cc3aa2c24018819ebdc1bd252ca22733ed461e817d46d682b3861dc6666179"
+    },
+    {
+      "path": "paper_results/figures/fig09_example_forecast.pdf",
+      "bytes": 25377,
+      "sha256": "d9ac0afeb232f7d6cf0bfcb30a291dd63f54d310609d62d309b7633f1dc84475"
+    },
+    {
+      "path": "paper_results/figures/fig09_example_forecast.png",
+      "bytes": 190713,
+      "sha256": "21f7c5841778c9ac74a67f7338d08c9da1704ab587c9f48553faa16a9ccae060"
+    },
+    {
+      "path": "paper_results/leadtime_events.csv",
+      "bytes": 231956,
+      "sha256": "0297e2a2cc0ceb0631504c5aac6e5655286e1cfcd091b6e2bc1a6e17b632d079"
+    },
+    {
+      "path": "paper_results/leadtime_source.json",
+      "bytes": 1052,
+      "sha256": "c856dd3c62b72e5c70f46a569e758a93b83284e4df1a8579f1e9e732f5417461"
+    },
+    {
+      "path": "paper_results/leadtime_summary.csv",
+      "bytes": 20895,
+      "sha256": "2a2f170d589cd027cf47ad475210417f3f1d8a84ba53db0f86605e29caaebb63"
+    },
+    {
+      "path": "paper_results/operating_points.csv",
+      "bytes": 3401,
+      "sha256": "789ac9a7d75a932aabc6f0a8f87ce196a2b05b1e2ee04554593b6f85b29f5afb"
+    },
+    {
+      "path": "paper_results/plotting/diagram.py",
+      "bytes": 1749,
+      "sha256": "8704cfa0e4d6970b83c751d281fed6abb16ce69a1b3b8cbbeaaaa7a127a5ca0f"
+    },
+    {
+      "path": "paper_results/plotting/example_event.py",
+      "bytes": 2741,
+      "sha256": "dc6c1696dcfd1fc2b49e8d7d40ddd9e4c2bd09aaba09030acc56bc6686251cce"
+    },
+    {
+      "path": "paper_results/plotting/fig01_pipeline.py",
+      "bytes": 4005,
+      "sha256": "d83f39a0964079a7da02d08a9c021cf244fc0ff55062ce2d1e745daca2aa08e2"
+    },
+    {
+      "path": "paper_results/plotting/fig02_example_event.py",
+      "bytes": 3943,
+      "sha256": "0d4ba334d6c0270b5cc449d3c1a7474026bda413caac602507a75c291d2dd451"
+    },
+    {
+      "path": "paper_results/plotting/fig03_architecture.py",
+      "bytes": 4943,
+      "sha256": "ebfd4abe93aec6e807ffd29630095aa24e8a79b4cd72660a747f07fc52e94e05"
+    },
+    {
+      "path": "paper_results/plotting/fig04_split.py",
+      "bytes": 4755,
+      "sha256": "3d00388e4280ce19466e9a4a0139a1f74bee27727bb0151d564a23bbe057c342"
+    },
+    {
+      "path": "paper_results/plotting/fig05_horizon.py",
+      "bytes": 3738,
+      "sha256": "54975c9cdebc89f8700149e25d918e2c815247cdbe44d9aa575419c5eb9cf49b"
+    },
+    {
+      "path": "paper_results/plotting/fig06_comparison.py",
+      "bytes": 3931,
+      "sha256": "c6197c6294f0df2aa7530f9386cd39df1cd39a56e1317dd4f13f24352dbffca2"
+    },
+    {
+      "path": "paper_results/plotting/fig07_reliability.py",
+      "bytes": 2307,
+      "sha256": "7f90c377b4db9a2b7c9a4a74e715f1fc2e230a454ee9b6f141bce178541e89eb"
+    },
+    {
+      "path": "paper_results/plotting/fig08_leadtime.py",
+      "bytes": 3893,
+      "sha256": "352df1d9a12baedb90b44283e8485ba57ba8a1a4d4d5278bc6648fca6d945cd4"
+    },
+    {
+      "path": "paper_results/plotting/fig09_example_forecast.py",
+      "bytes": 6082,
+      "sha256": "e73749b50f9f4b9b2c31633316b8ad2a2599b47d529e29dadb707515c71c32fa"
+    },
+    {
+      "path": "paper_results/plotting/fig10_robustness.py",
+      "bytes": 3059,
+      "sha256": "9d05361d75fe0ec2fa6bcd1b8771e75b13697d78dd4a73aa2ccbd98cf8c28fcd"
+    },
+    {
+      "path": "paper_results/plotting/results_io.py",
+      "bytes": 1032,
+      "sha256": "912dec0cbc475bd357fa2f459861ebff8065429e810a0894848c3c80c3f2de60"
+    },
+    {
+      "path": "paper_results/plotting/style.py",
+      "bytes": 3339,
+      "sha256": "301d004646cd1c93835158384734d6d3ce7d9225c2a557236f9edf664acc2f51"
+    },
+    {
+      "path": "paper_results/tables/README.md",
+      "bytes": 635,
+      "sha256": "160f646d5d7c142841581c0009073b898c8b99472f9874f67c0354d4747ba995"
+    },
+    {
+      "path": "paper_results/tables/table1_data.csv",
+      "bytes": 426,
+      "sha256": "37ade35cc10d67771f53c1a0cd34ece2383df9d7602cba8b713c47f8f8081796"
+    },
+    {
+      "path": "paper_results/tables/table1_data.md",
+      "bytes": 823,
+      "sha256": "22a4374d733dc27f6a4f5bdd44e5d27128c54aa97bb8df17bf1fa1e2a092df20"
+    },
+    {
+      "path": "paper_results/tables/table5_leadtime.csv",
+      "bytes": 2334,
+      "sha256": "909feaba2688009182ad3532c4154495b20863b0a5b452c324fa60c3ed46fc85"
+    },
+    {
+      "path": "paper_results/tables/table5_leadtime.md",
+      "bytes": 3631,
+      "sha256": "9d1b8b3ecfe5414e494878e65db800e53a3110237c0f18be21f5f6ae7c4e2c34"
+    },
+    {
+      "path": "paper_results/tables/table5b_leadtime_by_class.csv",
+      "bytes": 789,
+      "sha256": "d45b0ad974fb35323d202d1c365ce3d06b58d962407936ea23aec2ba7098d594"
+    },
+    {
+      "path": "paper_results/tables/table5b_leadtime_by_class.md",
+      "bytes": 1184,
+      "sha256": "e8eb4841b55874f5658ef2296074e94422b8832e3bb5e3e8e606f47c76f63047"
+    },
+    {
+      "path": "paper_results/tables/table7c_hel1os_rise_ablation.csv",
+      "bytes": 264,
+      "sha256": "a5d9a3ef963f56e65ba1bb025bca7b550396214e05a185aca8d118455c6c387e"
+    },
+    {
+      "path": "paper_results/tables/table7c_hel1os_rise_ablation.md",
+      "bytes": 744,
+      "sha256": "11d88b691b0118c9809e8aab0256602ae968408cc7b8db874466f999638130f8"
+    }
+  ],
+  "manifest_generated": {
+    "generated_utc": "2026-09-25 20:27:49",
+    "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278+uncommitted-changes",
+    "python": "3.14.7",
+    "script": "manifest.py"
+  }
+}

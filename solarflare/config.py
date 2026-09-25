@@ -314,6 +314,13 @@ class ModelConfig:
     #: time of day no longer identifies the sample.  The `clock_only` row of
     #: the modality ablation is there to catch this if you do.
     use_clock: bool = False
+    #: Which instruments the network reads: "both", "soft" (SoLEXS only) or "hard"
+    #: (HEL1OS only). A single-instrument model keeps the other instrument's mask
+    #: at zero in training and at prediction (its encoder then sees nothing), has
+    #: no modality dropout, and trains and is scored on the windows its instrument
+    #: observed, taken from the same split as "both" (dataset.instrument_windows).
+    #: Used for the paper's E1 (soft) / E2 (hard) / E4 (both) comparison.
+    inputs: str = "both"
 
 
 # --------------------------------------------------------------------------

@@ -296,6 +296,24 @@ def enumerate_windows(segments: list[Segment], cfg: Config) -> list[WindowIndex]
     return out
 
 
+def instrument_windows(segments: list[Segment], windows: list[WindowIndex], idx, cfg: Config,
+                       which: str) -> list[int]:
+    """The windows of ``idx`` a single-instrument model has: ``which`` ("soft" =
+    SoLEXS, "hard" = HEL1OS) observed the origin and at least
+    ``min_observed_fraction`` of the input -- the rule ``enumerate_windows``
+    applies to the two instruments together."""
+    key = {"soft": "soft_mask", "hard": "hard_mask"}[which]
+    L = cfg.steps_per_window
+    cs = [np.concatenate([[0.0], np.cumsum(getattr(s, key))]) for s in segments]
+    keep = []
+    for i in idx:
+        w = windows[i]
+        m, c = getattr(segments[w.seg], key), cs[w.seg]
+        if m[w.end - 1] > 0 and (c[w.end] - c[w.end - L]) / L >= cfg.win.min_observed_fraction:
+            keep.append(i)
+    return keep
+
+
 def _max_horizon_steps(cfg: Config) -> int:
     dt = cfg.pre.dt_seconds
     return max([int(h / dt) for h in cfg.win.forecast_horizons_s]

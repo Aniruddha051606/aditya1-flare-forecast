@@ -1,0 +1,166 @@
+{
+  "provenance": {
+    "generated_utc": "2026-09-25 18:56:38",
+    "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278+uncommitted-changes",
+    "python": "3.14.7",
+    "script": "data_and_split.py"
+  },
+  "mode": "global",
+  "fractions_train_val_test": [
+    0.6,
+    0.2,
+    0.2
+  ],
+  "rule": "one calendar cut: windows sorted by origin time, the first 60% train, next 20% validation, last 20% test, with every window within the embargo of a boundary dropped",
+  "training_thinning": {
+    "train_windows_before": 414171,
+    "train_windows_after": 307030,
+    "rule": "quiet training windows kept every 600 s instead of 120 s (training only)"
+  },
+  "window": {
+    "input_s": 7200.0,
+    "stride_s": 120.0,
+    "grid_s": 20.0,
+    "forecast_horizons_s": [
+      60.0,
+      300.0,
+      900.0,
+      1800.0,
+      3600.0
+    ],
+    "occurrence_horizons_s": [
+      900.0,
+      1800.0,
+      3600.0
+    ]
+  },
+  "labels": {
+    "source": "goes",
+    "min_class": "C1.0"
+  },
+  "seed": 1337,
+  "splits": {
+    "train": {
+      "first_origin_utc": "2023-12-01 01:59:20",
+      "last_origin_utc": "2025-08-07 20:49:40",
+      "windows": 307030,
+      "windows_soft_at_origin": 221639,
+      "windows_hard_at_origin": 303704,
+      "windows_both_at_origin": 218313,
+      "in_flare": {
+        "labelled": 301825,
+        "positive": 47715,
+        "rate": 0.1581
+      },
+      "flare_within": {
+        "15min": {
+          "labelled": 301825,
+          "positive": 81294,
+          "rate": 0.2693
+        },
+        "30min": {
+          "labelled": 301825,
+          "positive": 111345,
+          "rate": 0.3689
+        },
+        "60min": {
+          "labelled": 301825,
+          "positive": 161490,
+          "rate": 0.535
+        }
+      },
+      "goes_flares_peaking_in_span": 5633,
+      "goes_flares_by_class": {
+        "C": 4526,
+        "M": 1047,
+        "X": 60
+      }
+    },
+    "val": {
+      "first_origin_utc": "2025-09-03 20:59:40",
+      "last_origin_utc": "2026-03-03 03:51:40",
+      "windows": 120062,
+      "windows_soft_at_origin": 102084,
+      "windows_hard_at_origin": 118592,
+      "windows_both_at_origin": 100614,
+      "in_flare": {
+        "labelled": 118077,
+        "positive": 12241,
+        "rate": 0.1037
+      },
+      "flare_within": {
+        "15min": {
+          "labelled": 118077,
+          "positive": 20897,
+          "rate": 0.177
+        },
+        "30min": {
+          "labelled": 118077,
+          "positive": 28512,
+          "rate": 0.2415
+        },
+        "60min": {
+          "labelled": 118077,
+          "positive": 41094,
+          "rate": 0.348
+        }
+      },
+      "goes_flares_peaking_in_span": 1464,
+      "goes_flares_by_class": {
+        "C": 1263,
+        "M": 186,
+        "X": 15
+      }
+    },
+    "test": {
+      "first_origin_utc": "2026-03-30 03:53:40",
+      "last_origin_utc": "2026-09-21 22:59:40",
+      "windows": 118622,
+      "windows_soft_at_origin": 108190,
+      "windows_hard_at_origin": 116375,
+      "windows_both_at_origin": 105943,
+      "in_flare": {
+        "labelled": 117185,
+        "positive": 9514,
+        "rate": 0.0812
+      },
+      "flare_within": {
+        "15min": {
+          "labelled": 117185,
+          "positive": 16227,
+          "rate": 0.1385
+        },
+        "30min": {
+          "labelled": 117185,
+          "positive": 22200,
+          "rate": 0.1894
+        },
+        "60min": {
+          "labelled": 117185,
+          "positive": 32283,
+          "rate": 0.2755
+        }
+      },
+      "goes_flares_peaking_in_span": 1090,
+      "goes_flares_by_class": {
+        "C": 968,
+        "M": 117,
+        "X": 5
+      }
+    }
+  },
+  "checks": {
+    "same_split_as_recorded_at_training": true,
+    "splits_disjoint": true,
+    "chronological": true,
+    "gap_train_to_val_days": 27.01,
+    "gap_val_to_test_days": 27.0,
+    "embargo_days": 27.0,
+    "gaps_at_least_embargo": true,
+    "no_input_or_target_span_crosses_a_split": true,
+    "input_window_s": 7200.0,
+    "longest_horizon_s": 3600.0
+  },
+  "total_windows": 690286,
+  "total_flares_in_study": 8511
+}

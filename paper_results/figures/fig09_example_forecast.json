@@ -1,0 +1,13 @@
+{
+  "figure": "fig09_example_forecast",
+  "caption": "The frozen E4 model through the X2.5 flare of Figure 2, minute by minute, each value shown when it became available. Top: GOES-18 XRS-B flux and the E4 flux forecast for 15 min ahead, plotted at the time it forecasts (median and validation-widened 10-90% interval). Middle: calibrated probability of a >= C1 flare within 15 min and the alert threshold chosen on validation. Bottom: the M1 alert signal and its validation threshold. The +15 min median forecast issued at 07:58 UTC for the peak minute was 10^-5.49 W m^-2 (10-90%: 10^-5.68-10^-4.93); the observed GOES peak was 10^-3.60 W m^-2. >= C1 alert first on 6.0 min before the GOES peak; M1 alert (network) first on 5.0 min before the GOES peak (paper_results/leadtime_events.csv). One illustrative flare chosen by a fixed rule (Figure 2); the statistics over all test flares are in Figure 8 and the tables.",
+  "sources": [
+    "outputs/alerts/pred_final.npz",
+    "paper_results/operating_points.csv",
+    "paper_results/leadtime_events.csv",
+    "GOES-18 XRS avg1m (goes_dir)"
+  ],
+  "script": "paper_results/plotting/fig09_example_forecast.py",
+  "generated_utc": "2026-09-25 20:15:38",
+  "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278"
+}

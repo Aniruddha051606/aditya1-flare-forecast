@@ -328,6 +328,19 @@ def test_prepare_end_to_end_archive_mode():
         check("all five days detected their flare",
               prep.meta["n_events"] >= 5, str(prep.meta["n_events"]))
         check("meta records the split mode", prep.meta["split_mode"] == "global")
+
+        # a single-instrument run (paper E1) shares the split: same dates and
+        # normaliser, and only windows of the two-instrument split
+        cfg1 = Config(data_root=root / "data", out_dir=root / "out")
+        cfg1.win.large_data_days = 2.0
+        cfg1.model.inputs = "soft"
+        soft = prepare(cfg1, verbose=False)
+        check("single-instrument run: same split dates", soft.meta["split_dates"] == prep.meta["split_dates"])
+        check("...same normaliser", np.array_equal(soft.norm.mean_soft, prep.norm.mean_soft)
+              and np.array_equal(soft.norm.std_hard, prep.norm.std_hard))
+        check("...windows a subset of each split (here all: this archive is SoLEXS only)",
+              all(set(soft.splits[k]) <= set(prep.splits[k]) for k in ("train", "val", "test"))
+              and soft.splits == prep.splits and soft.meta["inputs"] == "soft")
         shutil.rmtree(root / "out", ignore_errors=True)
 
 
@@ -415,6 +428,35 @@ def test_cache_survives_deleting_the_raw_files():
               bool(carried) and not any(e.get("source_deleted") for e in mine)
               and len(mine) == len([e for e in again if e.get("status") == "ok"]) - len(carried),
               f"{len(mine)} checked, {len(carried)} carried")
+
+
+def test_a_frozen_cache_adds_nothing_new():
+    """New days downloaded into data_root must not slip into the study cache: every
+    command that loads the archive re-scans data_root, and one new day moves the
+    chronological split under every published number."""
+    from solarflare.preprocess.cache import FROZEN_MARKER, build_cache, index_sources
+    pre = PreprocessConfig()
+    pre.cache_is_source = True
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        _archive(root / "data", 6)
+        cache = root / "cache"
+        first = build_cache(index_sources([root / "data"]), pre, cache, workers=1, verbose=False)
+        before = sorted(e["source"]["path"] for e in first if e.get("status") == "ok")
+        (cache / FROZEN_MARKER).write_text("frozen for the test", encoding="utf-8")
+        t_new = T0 + 7 * DAY                                              # a later download
+        _write_day_zip(root / "data", time.strftime("%Y%m%d", time.gmtime(t_new)), t_new, seed=7)
+        lost = cache / f"{first[0]['key']}.npz"
+        lost.unlink()                                  # and a damaged cache (1 of 6: under the 20% guard)
+        after = build_cache(index_sources([root / "data"]), pre, cache, workers=1, verbose=False)
+        now = sorted(e["source"]["path"] for e in after if e.get("status") == "ok")
+        check("a frozen cache does not take in a newly downloaded day", now == before,
+              f"{len(now)} vs {len(before)}")
+        check("...but still rebuilds a missing file for a day it holds", lost.exists())
+        (cache / FROZEN_MARKER).unlink()
+        opened = build_cache(index_sources([root / "data"]), pre, cache, workers=1, verbose=False)
+        check("without the marker the new day is cached as before",
+              sum(e.get("status") == "ok" for e in opened) == len(before) + 1)
 
 
 def test_ingest_finds_products_filed_under_the_next_day():

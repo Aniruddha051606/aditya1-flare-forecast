@@ -121,6 +121,9 @@ class SolexHelNet(nn.Module):
                  anchor: FluxAnchor | None = None):
         super().__init__()
         self.cfg = cfg
+        self.inputs = getattr(cfg, "inputs", "both")
+        if self.inputs not in ("both", "soft", "hard"):
+            raise ValueError(f"model.inputs must be 'both', 'soft' or 'hard', not {self.inputs!r}")
         # Optional structural prior: predict flux as "what SoLEXS reads now,
         # calibrated" plus a learned change. It adds no parameters, so a
         # checkpoint trained with it loads into a model built without it --
@@ -170,7 +173,12 @@ class SolexHelNet(nn.Module):
     def forward(self, soft: torch.Tensor, soft_mask: torch.Tensor,
                 hard: torch.Tensor, hard_mask: torch.Tensor,
                 clock: torch.Tensor) -> dict[str, torch.Tensor]:
-        if self.training and self.cfg.modality_dropout > 0:
+        # A single-instrument model never sees the other instrument (model.inputs).
+        if self.inputs == "soft":
+            hard_mask = torch.zeros_like(hard_mask)
+        elif self.inputs == "hard":
+            soft_mask = torch.zeros_like(soft_mask)
+        if self.training and self.cfg.modality_dropout > 0 and self.inputs == "both":
             b = soft.shape[0]
             dev = soft.device
             p = self.cfg.modality_dropout

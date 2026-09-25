@@ -41,7 +41,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from solarflare.preprocess.cache import build_cache, index_sources, load_cached  # noqa: E402
+from solarflare.preprocess.cache import (FROZEN_MARKER, build_cache, cache_frozen, index_sources,  # noqa: E402
+                                         load_cached)
 from solarflare.settings import load_settings, model_config  # noqa: E402
 
 #: What the pipeline reads from a HEL1OS product (scripts/unzip_archive.py's
@@ -116,7 +117,8 @@ def backup_cache(cache: Path, dest: Path) -> int:
         return 1
     dest.mkdir(parents=True, exist_ok=True)
     copied = skipped = 0
-    for f in [cache / "manifest.json", *sorted(cache.glob("*.npz"))]:
+    marker = [cache / FROZEN_MARKER] if cache_frozen(cache) else []
+    for f in [cache / "manifest.json", *marker, *sorted(cache.glob("*.npz"))]:
         out = dest / f.name
         if out.exists() and out.stat().st_size == f.stat().st_size and out.stat().st_mtime_ns >= f.stat().st_mtime_ns:
             skipped += 1
@@ -205,6 +207,11 @@ def main() -> int:
     if args.check:
         rc = check_cache(cache)
         return backup_cache(cache, Path(args.backup)) or rc if args.backup else rc
+    if cache_frozen(cache):
+        print(f"{cache} is frozen ({cache / FROZEN_MARKER}): it holds the data the final model was trained "
+              "and tested on, so nothing is ingested into it. Ingest new days into their own cache with "
+              "--cache-dir; restore a damaged frozen cache from its backup (--check lists holes).")
+        return 2
     cfg = model_config(S).pre
     zips = sorted(p for p in root.rglob("*.zip") if HLS_ZIP.search(p.name))
     if not zips:

@@ -1,0 +1,39 @@
+alert,method,operating_point,threshold,chosen_on,validation_false_alarms_per_day
+GOES >= C1 flare within 15 min,network (E4),best_TSS,0.18,validation,
+GOES >= C1 flare within 15 min,network (E4),fa_1,0.7894,validation,0.86
+GOES >= C1 flare within 15 min,network (E4),fa_2,0.669,validation,1.752
+GOES >= C1 flare within 15 min,network (E4),fa_5,0.4261,validation,4.615
+GOES >= C1 flare within 15 min,SoLEXS trend (15-min extrapolation),best_TSS,-5.7849,validation,
+GOES >= C1 flare within 15 min,SoLEXS trend (15-min extrapolation),fa_1,-5.0158,validation,0.86
+GOES >= C1 flare within 15 min,SoLEXS trend (15-min extrapolation),fa_2,-5.1864,validation,1.982
+GOES >= C1 flare within 15 min,SoLEXS trend (15-min extrapolation),fa_5,-5.4123,validation,4.914
+GOES >= C1 flare within 15 min,SoLEXS flux now,best_TSS,-5.8226,validation,
+GOES >= C1 flare within 15 min,SoLEXS flux now,fa_1,-5.4977,validation,0.945
+GOES >= C1 flare within 15 min,SoLEXS flux now,fa_2,-5.6812,validation,1.976
+GOES >= C1 flare within 15 min,SoLEXS flux now,fa_5,-5.8937,validation,3.205
+GOES >= C1 flare within 15 min,hot-onset trigger (SoLEXS),best_TSS,-0.5477,validation,
+GOES >= C1 flare within 15 min,hot-onset trigger (SoLEXS),fa_1,-99.0,validation,0.032
+GOES >= C1 flare within 15 min,hot-onset trigger (SoLEXS),fa_2,-99.0,validation,0.032
+GOES >= C1 flare within 15 min,hot-onset trigger (SoLEXS),fa_5,-99.0,validation,0.032
+GOES >= C1 flare within 15 min,catalogue rise rule,fixed,0.5,validation,
+GOES >= C1 flare within 15 min,rise rule at >= C1 flux,fixed,0.5,validation,
+GOES flux reaches M1 within 30 min,network (E4),best_TSS,-5.5522,validation,
+GOES flux reaches M1 within 30 min,network (E4),fa_0.25,-4.9686,validation,0.219
+GOES flux reaches M1 within 30 min,network (E4),fa_0.5,-5.0532,validation,0.459
+GOES flux reaches M1 within 30 min,network (E4),fa_1,-5.1655,validation,0.983
+GOES flux reaches M1 within 30 min,network or SoLEXS flux now (E4),best_TSS,-5.5274,validation,
+GOES flux reaches M1 within 30 min,network or SoLEXS flux now (E4),fa_0.25,-4.953,validation,0.182
+GOES flux reaches M1 within 30 min,network or SoLEXS flux now (E4),fa_0.5,-5.0523,validation,0.497
+GOES flux reaches M1 within 30 min,network or SoLEXS flux now (E4),fa_1,-5.1447,validation,0.961
+GOES flux reaches M1 within 30 min,SoLEXS trend (15-min extrapolation),best_TSS,-5.5004,validation,
+GOES flux reaches M1 within 30 min,SoLEXS trend (15-min extrapolation),fa_0.25,-3.3357,validation,0.246
+GOES flux reaches M1 within 30 min,SoLEXS trend (15-min extrapolation),fa_0.5,-3.6615,validation,0.47
+GOES flux reaches M1 within 30 min,SoLEXS trend (15-min extrapolation),fa_1,-4.0506,validation,0.977
+GOES flux reaches M1 within 30 min,SoLEXS flux now,best_TSS,-5.5287,validation,
+GOES flux reaches M1 within 30 min,SoLEXS flux now,fa_0.25,-5.0103,validation,0.246
+GOES flux reaches M1 within 30 min,SoLEXS flux now,fa_0.5,-5.0848,validation,0.497
+GOES flux reaches M1 within 30 min,SoLEXS flux now,fa_1,-5.188,validation,0.977
+GOES flux reaches M1 within 30 min,hot-onset trigger (SoLEXS),best_TSS,0.5272,validation,
+GOES flux reaches M1 within 30 min,hot-onset trigger (SoLEXS),fa_0.25,-99.0,validation,0.128
+GOES flux reaches M1 within 30 min,hot-onset trigger (SoLEXS),fa_0.5,-99.0,validation,0.128
+GOES flux reaches M1 within 30 min,hot-onset trigger (SoLEXS),fa_1,-99.0,validation,0.128

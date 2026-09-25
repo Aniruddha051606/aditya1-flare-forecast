@@ -1,0 +1,596 @@
+{
+  "provenance": {
+    "generated_utc": "2026-09-25 18:56:38",
+    "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278+uncommitted-changes",
+    "python": "3.14.7",
+    "script": "data_and_split.py"
+  },
+  "study_cache": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\cache",
+  "study_cache_frozen": true,
+  "cache_build": {
+    "ok": 3499,
+    "empty": 0,
+    "failed": 0
+  },
+  "SoLEXS": {
+    "product": "SoLEXS Level-1 day files (PRADAN zips, read in place)",
+    "zip_files": 836,
+    "days_with_files": 832,
+    "first_day": "20240201",
+    "last_day": "20260921",
+    "days_in_two_or_more_versions": {
+      "20240212": [
+        "1.0",
+        "1.1"
+      ],
+      "20241001": [
+        "1.0",
+        "1.1"
+      ],
+      "20241025": [
+        "1.0",
+        "1.1"
+      ],
+      "20241212": [
+        "1.0",
+        "1.1"
+      ]
+    },
+    "version_rule": "the highest version of a day is used",
+    "missing_days": [
+      {
+        "from": "2024-03-27",
+        "days": 2,
+        "to": "2024-03-28"
+      },
+      {
+        "from": "2024-03-30",
+        "days": 1,
+        "to": "2024-03-30"
+      },
+      {
+        "from": "2024-06-01",
+        "days": 30,
+        "to": "2024-06-30"
+      },
+      {
+        "from": "2024-07-02",
+        "days": 1,
+        "to": "2024-07-02"
+      },
+      {
+        "from": "2024-08-29",
+        "days": 1,
+        "to": "2024-08-29"
+      },
+      {
+        "from": "2024-09-09",
+        "days": 1,
+        "to": "2024-09-09"
+      },
+      {
+        "from": "2024-09-24",
+        "days": 1,
+        "to": "2024-09-24"
+      },
+      {
+        "from": "2024-10-12",
+        "days": 1,
+        "to": "2024-10-12"
+      },
+      {
+        "from": "2024-11-06",
+        "days": 1,
+        "to": "2024-11-06"
+      },
+      {
+        "from": "2024-12-22",
+        "days": 2,
+        "to": "2024-12-23"
+      },
+      {
+        "from": "2024-12-26",
+        "days": 2,
+        "to": "2024-12-27"
+      },
+      {
+        "from": "2025-01-12",
+        "days": 2,
+        "to": "2025-01-13"
+      },
+      {
+        "from": "2025-01-21",
+        "days": 1,
+        "to": "2025-01-21"
+      },
+      {
+        "from": "2025-01-27",
+        "days": 1,
+        "to": "2025-01-27"
+      },
+      {
+        "from": "2025-01-29",
+        "days": 2,
+        "to": "2025-01-30"
+      },
+      {
+        "from": "2025-02-03",
+        "days": 5,
+        "to": "2025-02-07"
+      },
+      {
+        "from": "2025-03-02",
+        "days": 1,
+        "to": "2025-03-02"
+      },
+      {
+        "from": "2025-03-05",
+        "days": 1,
+        "to": "2025-03-05"
+      },
+      {
+        "from": "2025-03-14",
+        "days": 1,
+        "to": "2025-03-14"
+      },
+      {
+        "from": "2025-03-16",
+        "days": 1,
+        "to": "2025-03-16"
+      },
+      {
+        "from": "2025-03-21",
+        "days": 1,
+        "to": "2025-03-21"
+      },
+      {
+        "from": "2025-04-06",
+        "days": 2,
+        "to": "2025-04-07"
+      },
+      {
+        "from": "2025-04-16",
+        "days": 1,
+        "to": "2025-04-16"
+      },
+      {
+        "from": "2025-04-28",
+        "days": 2,
+        "to": "2025-04-29"
+      },
+      {
+        "from": "2025-05-01",
+        "days": 2,
+        "to": "2025-05-02"
+      },
+      {
+        "from": "2025-05-05",
+        "days": 2,
+        "to": "2025-05-06"
+      },
+      {
+        "from": "2025-05-12",
+        "days": 1,
+        "to": "2025-05-12"
+      },
+      {
+        "from": "2025-05-15",
+        "days": 1,
+        "to": "2025-05-15"
+      },
+      {
+        "from": "2025-05-20",
+        "days": 2,
+        "to": "2025-05-21"
+      },
+      {
+        "from": "2025-05-25",
+        "days": 1,
+        "to": "2025-05-25"
+      },
+      {
+        "from": "2025-06-07",
+        "days": 1,
+        "to": "2025-06-07"
+      },
+      {
+        "from": "2025-06-10",
+        "days": 2,
+        "to": "2025-06-11"
+      },
+      {
+        "from": "2025-06-22",
+        "days": 1,
+        "to": "2025-06-22"
+      },
+      {
+        "from": "2025-06-24",
+        "days": 1,
+        "to": "2025-06-24"
+      },
+      {
+        "from": "2025-07-02",
+        "days": 2,
+        "to": "2025-07-03"
+      },
+      {
+        "from": "2025-07-05",
+        "days": 2,
+        "to": "2025-07-06"
+      },
+      {
+        "from": "2025-07-11",
+        "days": 3,
+        "to": "2025-07-13"
+      },
+      {
+        "from": "2025-07-17",
+        "days": 1,
+        "to": "2025-07-17"
+      },
+      {
+        "from": "2025-07-20",
+        "days": 8,
+        "to": "2025-07-27"
+      },
+      {
+        "from": "2025-08-05",
+        "days": 1,
+        "to": "2025-08-05"
+      },
+      {
+        "from": "2025-08-14",
+        "days": 2,
+        "to": "2025-08-15"
+      },
+      {
+        "from": "2025-08-23",
+        "days": 1,
+        "to": "2025-08-23"
+      },
+      {
+        "from": "2025-08-26",
+        "days": 1,
+        "to": "2025-08-26"
+      },
+      {
+        "from": "2025-08-31",
+        "days": 1,
+        "to": "2025-08-31"
+      },
+      {
+        "from": "2025-09-14",
+        "days": 1,
+        "to": "2025-09-14"
+      },
+      {
+        "from": "2025-09-21",
+        "days": 2,
+        "to": "2025-09-22"
+      },
+      {
+        "from": "2025-09-24",
+        "days": 1,
+        "to": "2025-09-24"
+      },
+      {
+        "from": "2025-09-26",
+        "days": 4,
+        "to": "2025-09-29"
+      },
+      {
+        "from": "2025-10-16",
+        "days": 1,
+        "to": "2025-10-16"
+      },
+      {
+        "from": "2025-10-24",
+        "days": 1,
+        "to": "2025-10-24"
+      },
+      {
+        "from": "2025-10-29",
+        "days": 2,
+        "to": "2025-10-30"
+      },
+      {
+        "from": "2025-11-11",
+        "days": 1,
+        "to": "2025-11-11"
+      },
+      {
+        "from": "2025-11-17",
+        "days": 1,
+        "to": "2025-11-17"
+      },
+      {
+        "from": "2025-12-28",
+        "days": 1,
+        "to": "2025-12-28"
+      },
+      {
+        "from": "2025-12-31",
+        "days": 1,
+        "to": "2025-12-31"
+      },
+      {
+        "from": "2026-02-13",
+        "days": 1,
+        "to": "2026-02-13"
+      },
+      {
+        "from": "2026-02-17",
+        "days": 1,
+        "to": "2026-02-17"
+      },
+      {
+        "from": "2026-02-20",
+        "days": 1,
+        "to": "2026-02-20"
+      },
+      {
+        "from": "2026-04-16",
+        "days": 2,
+        "to": "2026-04-17"
+      },
+      {
+        "from": "2026-04-23",
+        "days": 1,
+        "to": "2026-04-23"
+      },
+      {
+        "from": "2026-04-29",
+        "days": 1,
+        "to": "2026-04-29"
+      },
+      {
+        "from": "2026-05-22",
+        "days": 1,
+        "to": "2026-05-22"
+      },
+      {
+        "from": "2026-06-04",
+        "days": 1,
+        "to": "2026-06-04"
+      },
+      {
+        "from": "2026-06-09",
+        "days": 1,
+        "to": "2026-06-09"
+      },
+      {
+        "from": "2026-08-10",
+        "days": 3,
+        "to": "2026-08-12"
+      },
+      {
+        "from": "2026-08-16",
+        "days": 1,
+        "to": "2026-08-16"
+      },
+      {
+        "from": "2026-08-24",
+        "days": 1,
+        "to": "2026-08-24"
+      },
+      {
+        "from": "2026-09-16",
+        "days": 1,
+        "to": "2026-09-16"
+      }
+    ],
+    "days_in_frozen_study": 831,
+    "days_on_disk_after_the_study": [
+      "20260921"
+    ],
+    "copied_days": {
+      "days_checked": 831,
+      "files_repeating_the_previous_day": [
+        {
+          "file": "AL1_SLX_L1_20240726_v1.1.zip",
+          "copies": "20240725",
+          "masked_utc": [
+            [
+              "2024-07-26 12:00",
+              "2024-07-27 00:00"
+            ]
+          ]
+        },
+        {
+          "file": "AL1_SLX_L1_20240901_v1.1.zip",
+          "copies": "20240831",
+          "masked_utc": [
+            [
+              "2024-09-01 12:00",
+              "2024-09-02 00:00"
+            ]
+          ]
+        },
+        {
+          "file": "AL1_SLX_L1_20241002_v1.0.zip",
+          "copies": "20241001",
+          "masked_utc": [
+            [
+              "2024-10-02 18:18",
+              "2024-10-03 00:00"
+            ]
+          ]
+        },
+        {
+          "file": "AL1_SLX_L1_20250220_v1.0.zip",
+          "copies": "20250219",
+          "masked_utc": [
+            [
+              "2025-02-20 12:00",
+              "2025-02-21 00:00"
+            ]
+          ]
+        }
+      ],
+      "samples_masked": 7502
+    },
+    "cadence": "L1 1 s light curve and 340-channel spectra; gridded to 20 s for the model",
+    "model_features": 24,
+    "observed_days_in_study": 764.9
+  },
+  "HEL1OS": {
+    "product": "HEL1OS Level-1 products (PRADAN zips): light curves, GTIs, photon event lists",
+    "zip_files": 2725,
+    "observations": 2420,
+    "observations_in_two_or_more_versions": 265,
+    "version_rule": "the higher version of an observation is used (overlapping versions carry the same telemetry)",
+    "zips_without_light_curves": {
+      "count": 34,
+      "note": "older versions shipping only housekeeping, GTIs and event lists; each has a newer version with light curves",
+      "files": [
+        "HLS_20251017_000004_43194sec_lev1_V111.zip",
+        "HLS_20251017_120000_43202sec_lev1_V111.zip",
+        "HLS_20251018_120000_43202sec_lev1_V111.zip",
+        "HLS_20251019_000006_43192sec_lev1_V111.zip",
+        "HLS_20251019_115959_43204sec_lev1_V111.zip",
+        "HLS_20251019_120000_43203sec_lev1_V111.zip",
+        "HLS_20251020_000005_43193sec_lev1_V111.zip",
+        "HLS_20251020_120000_43203sec_lev1_V111.zip",
+        "HLS_20251021_000003_43185sec_lev1_V111.zip",
+        "HLS_20251021_120005_43190sec_lev1_V111.zip",
+        "HLS_20251022_000008_43180sec_lev1_V111.zip",
+        "HLS_20251022_120003_43190sec_lev1_V111.zip",
+        "HLS_20251023_000005_43179sec_lev1_V111.zip",
+        "HLS_20251023_120001_43193sec_lev1_V111.zip",
+        "HLS_20251024_000011_43176sec_lev1_V111.zip",
+        "HLS_20251024_120003_43191sec_lev1_V111.zip",
+        "HLS_20251025_000007_43181sec_lev1_V111.zip",
+        "HLS_20251025_114954_43800sec_lev1_V111.zip",
+        "HLS_20251026_000010_43177sec_lev1_V111.zip",
+        "HLS_20251026_114955_43799sec_lev1_V111.zip",
+        "HLS_20251027_000010_43179sec_lev1_V111.zip",
+        "HLS_20251027_120005_43186sec_lev1_V111.zip",
+        "HLS_20251027_235950_43200sec_lev1_V111.zip",
+        "HLS_20251028_120007_43185sec_lev1_V111.zip",
+        "HLS_20251029_000008_43185sec_lev1_V111.zip",
+        "HLS_20251029_120007_43186sec_lev1_V111.zip",
+        "HLS_20251030_000009_43181sec_lev1_V111.zip",
+        "HLS_20251030_120006_43184sec_lev1_V111.zip",
+        "HLS_20251031_000006_43184sec_lev1_V111.zip",
+        "HLS_20251031_120006_43190sec_lev1_V111.zip",
+        "HLS_20251101_000012_43177sec_lev1_V111.zip",
+        "HLS_20251101_120005_43188sec_lev1_V111.zip",
+        "HLS_20251102_000007_43182sec_lev1_V111.zip",
+        "HLS_20251102_120004_43194sec_lev1_V111.zip"
+      ]
+    },
+    "calibration_zips": [
+      "CAL_epoch20231001_CZTResponseReader.zip",
+      "CAL_epoch20231001_CdTeResponseReader.zip"
+    ],
+    "first_day": "20231130",
+    "last_day": "20260924",
+    "days_with_data": 1020,
+    "missing_days": [
+      {
+        "from": "2023-12-24",
+        "days": 1,
+        "to": "2023-12-24"
+      },
+      {
+        "from": "2024-06-30",
+        "days": 1,
+        "to": "2024-06-30"
+      },
+      {
+        "from": "2024-09-09",
+        "days": 1,
+        "to": "2024-09-09"
+      },
+      {
+        "from": "2024-10-12",
+        "days": 1,
+        "to": "2024-10-12"
+      },
+      {
+        "from": "2025-04-16",
+        "days": 1,
+        "to": "2025-04-16"
+      },
+      {
+        "from": "2026-02-17",
+        "days": 1,
+        "to": "2026-02-17"
+      },
+      {
+        "from": "2026-04-16",
+        "days": 1,
+        "to": "2026-04-16"
+      },
+      {
+        "from": "2026-05-22",
+        "days": 1,
+        "to": "2026-05-22"
+      },
+      {
+        "from": "2026-06-04",
+        "days": 1,
+        "to": "2026-06-04"
+      },
+      {
+        "from": "2026-08-16",
+        "days": 1,
+        "to": "2026-08-16"
+      }
+    ],
+    "products_used_by_the_study": 2668,
+    "days_on_disk_after_the_study": [
+      "20260922",
+      "20260923",
+      "20260924"
+    ],
+    "study_first_utc": "2023-11-30 23:59:40",
+    "study_last_utc": "2026-09-22 00:00:00",
+    "extraction": "light curves extracted one product at a time, cached (20 s grid), extracted files deleted, zips kept (scripts/ingest_batch.py); photon event lists read straight from the zips",
+    "cadence": "L1 light curves 1 s (readout batches every 2-8 s); smoothed over 60 s and gridded to 20 s for the model",
+    "model_features": 48,
+    "observed_days_in_study": 968.4
+  },
+  "GOES": {
+    "product": "GOES-18 XRS L2 science: flare summary (flsum) and 1-min averages (avg1m)",
+    "role": "truth only: flare labels, reference flux, scoring. Never a model input (see 05_leakage_checks.md)",
+    "files": [
+      "D:\\Data\\goes\\sci_xrsf-l2-avg1m_g18_y2023_v2-2-1.nc",
+      "D:\\Data\\goes\\sci_xrsf-l2-avg1m_g18_y2024_v2-2-1.nc",
+      "D:\\Data\\goes\\sci_xrsf-l2-avg1m_g18_y2025_v2-2-1.nc",
+      "D:\\Data\\goes\\sci_xrsf-l2-avg1m_g18_y2026_v2-2-1.nc",
+      "D:\\Data\\goes\\sci_xrsf-l2-flsum_g18_s20220617_e20260921_v2-2-1.nc"
+    ],
+    "flare_list_first_peak": "2022-06-17 00:53:00",
+    "flare_list_last_peak": "2026-09-21 11:17:00",
+    "flux_first_valid_minute": "2023-01-01 00:00:00",
+    "flux_last_valid_minute": "2026-09-21 23:59:00",
+    "flux_valid_fraction_over_study_span": 0.9755,
+    "flares_in_study_time_span_by_class": {
+      "B": 574,
+      "C": 7165,
+      "M": 1400,
+      "X": 81
+    },
+    "flares_in_study_time_span_note": "every GOES-listed flare between the first and last Aditya-L1 product, whether or not Aditya-L1 was observing",
+    "flares_labelled_in_observed_segments_by_class": {
+      "C": 7045,
+      "M": 1385,
+      "X": 81
+    },
+    "label_threshold": "C1.0"
+  },
+  "other": {
+    "SHARP": {
+      "files": 32,
+      "first": "sharp_2024-02.csv",
+      "last": "sharp_2026-09.csv",
+      "status": "downloaded; left out of the final network by the pipeline's own ablation (outputs/ablations/sharp); used only in the day-ahead study"
+    },
+    "SUIT": {
+      "folder": "D:\\Data\\suit",
+      "files": 0,
+      "status": "no real SUIT data on disk: experiments E3, E5, E6 cannot be run (the suit/ code is tested on synthetic data only)"
+    }
+  }
+}

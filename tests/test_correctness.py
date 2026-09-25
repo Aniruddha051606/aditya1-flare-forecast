@@ -173,6 +173,62 @@ def test_modality_dropout_never_drops_both():
     check("heavy modality dropout still yields finite outputs", bool(ok))
 
 
+def test_single_instrument_models_ignore_the_other_instrument():
+    """E1 (SoLEXS only) / E2 (HEL1OS only): the other instrument must have no way
+    in, in training mode (modality dropout off) as well as at prediction."""
+    from solarflare.preprocess.dataset import Segment, WindowIndex, instrument_windows
+
+    b, t = 8, 32
+    torch.manual_seed(0)
+    soft, hard, clock = torch.randn(b, t, 6), torch.randn(b, t, 4), torch.randn(b, t, 2)
+    alt_soft, alt_hard = 5 * torch.randn(b, t, 6), 5 * torch.randn(b, t, 4)
+    ones = torch.ones(b, t)
+    for inputs, other in (("soft", "hard"), ("hard", "soft")):
+        torch.manual_seed(1)
+        net = SolexHelNet(6, 4, 2, ModelConfig(hidden=16, dilations=(1, 2), inputs=inputs,
+                                               modality_dropout=0.9), WindowConfig())
+        for mode in ("eval", "train"):
+            getattr(net, mode)()
+            torch.manual_seed(2)
+            a = net(soft, ones, hard, ones, clock)
+            torch.manual_seed(2)
+            if other == "hard":
+                c = net(soft, ones, alt_hard, torch.zeros(b, t), clock)
+            else:
+                c = net(alt_soft, torch.zeros(b, t), hard, ones, clock)
+            same = all(torch.allclose(a[k], c[k]) for k in ("in_flare", "occurrence", "nowcast", "forecast", "peak"))
+            check(f"inputs={inputs!r} ({mode}): changing {other} changes nothing", same)
+    both = SolexHelNet(6, 4, 2, ModelConfig(hidden=16, dilations=(1, 2)), WindowConfig()).eval()
+    with torch.no_grad():
+        d = both(soft, ones, hard, ones, clock)["in_flare"] - both(soft, ones, 5 * hard, ones, clock)["in_flare"]
+    check("inputs='both' does read HEL1OS (so the checks above can fail)", bool(d.abs().max() > 1e-6))
+    try:
+        SolexHelNet(6, 4, 2, ModelConfig(inputs="goes"), WindowConfig())
+        bad = False
+    except ValueError:
+        bad = True
+    check("an unknown inputs setting is refused", bad)
+
+    # windows a single-instrument model keeps: its instrument observed the origin
+    # and at least min_observed_fraction of the input
+    cfg = Config()
+    cfg.pre.dt_seconds, cfg.win.input_seconds, cfg.win.min_observed_fraction = 60.0, 600.0, 0.5
+    n = 60
+    soft_m = np.ones(n, np.float32)
+    soft_m[20:40] = 0.0                               # SoLEXS gap
+    hard_m = np.ones(n, np.float32)
+    seg = Segment("s", np.arange(n) * 60.0, np.zeros((n, 1)), soft_m, np.zeros((n, 1)), hard_m,
+                  np.zeros((n, 2)), np.zeros(n), np.zeros(n), np.zeros(n), np.zeros(n), np.ones(n), [])
+    wins = [WindowIndex(0, e, e * 60.0) for e in range(10, n + 1)]
+    ks = instrument_windows([seg], wins, range(len(wins)), cfg, "soft")
+    kh = instrument_windows([seg], wins, range(len(wins)), cfg, "hard")
+    ends_s = {wins[i].end for i in ks}
+    check("SoLEXS windows exclude origins inside its gap", not any(21 <= e <= 40 for e in ends_s)
+          and 20 in ends_s and 55 in ends_s, str(sorted(ends_s)))
+    check("...and windows mostly inside the gap", 44 not in ends_s and 46 in ends_s)
+    check("HEL1OS windows keep every window here", len(kh) == len(wins))
+
+
 def test_fully_masked_window_is_finite():
     """A window with no observations anywhere must not produce NaN."""
     torch.manual_seed(0)

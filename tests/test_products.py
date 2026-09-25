@@ -162,6 +162,32 @@ def test_events_read_straight_from_the_zips():
         bz = he.read_events(pz, "CZT1", t_start, t_start + 60.0)
         check("disabled pixels are read from inside the zip", bz.pix is not None and 3 not in set(bz.pix.tolist()))
 
+        # storm-day products hold event lists of several GB: those are unpacked to a
+        # scratch file and memory-mapped, and rows are located in chunks
+        want = he.read_events(pz, "CZT1", t_start + 10.0, t_start + 40.0, 20.0, 100.0)
+        limit, chunk, scratch_env = he.IN_MEMORY_MAX_BYTES, he.ROW_CHUNK, os.environ.get(he.SCRATCH_ENV)
+        try:
+            he.IN_MEMORY_MAX_BYTES, he.ROW_CHUNK = 0, 7
+            os.environ[he.SCRATCH_ENV] = str(tmp)
+            got = he.read_events(pz, "CZT1", t_start + 10.0, t_start + 40.0, 20.0, 100.0)
+            unpacked = he._scratch["path"]
+            check("a large event list read from a scratch file, in chunks, gives the same events",
+                  np.array_equal(want.tick, got.tick) and np.array_equal(want.energy, got.energy)
+                  and np.array_equal(want.pix, got.pix) and want.utc_offset == got.utc_offset,
+                  f"{want.tick.size} vs {got.tick.size}")
+            none = he.read_events(pz, "CZT1", t_start + 5000.0, t_start + 5100.0)
+            check("a window outside the product returns no events", none.tick.size == 0)
+            he._drop_scratch()
+            check("the scratch file is deleted when no longer needed",
+                  unpacked is not None and not unpacked.exists() and he._scratch["path"] is None)
+        finally:
+            he.IN_MEMORY_MAX_BYTES, he.ROW_CHUNK = limit, chunk
+            if scratch_env is None:
+                os.environ.pop(he.SCRATCH_ENV, None)
+            else:
+                os.environ[he.SCRATCH_ENV] = scratch_env
+            he._drop_scratch()
+
         both = os.pathsep.join((str(ext), str(zips)))
         pb = he.product_for(both, t_start + 10.0, t_start + 30.0)
         check("an extracted copy wins over the zip", pb is not None and pb.zip is None)
@@ -456,10 +482,85 @@ def test_model_test_pieces():
           len(wins) == 1 and wins[0].end == 810 and wins[0].t_unix == 809 * 20.0
           and info[0]["peak_after_origin"], str(wins))
 
+    check("GOES class labels from log flux", mt.goes_class(-5.0) == "M1.0" and mt.goes_class(-5.3) == "C5.0"
+          and mt.goes_class(np.log10(2e-4)) == "X2.0", f"{mt.goes_class(-5.3)}")
+    # a forecaster that reads every peak 0.3 dex low: the validation cut-off moves down to meet it
+    yp = rng.uniform(-6.0, -4.0, 4000)
+    under = yp - 0.3 + rng.normal(0, 0.05, yp.size)
+    cut = mt.m_cut(yp, under)
+    fixed, tuned = mt.m_class_scores(yp, under), mt.m_class_scores(yp, under, cut)
+    check("the >= M cut-off chosen on validation corrects a low bias",
+          -5.45 < cut < -5.15 and tuned["TSS"] > fixed["TSS"] + 0.2, f"cut {cut:.2f}, TSS {fixed['TSS']} -> {tuned['TSS']}")
+    check("with one class only, the cut-off stays at M1", mt.m_cut(np.full(10, -5.5), rng.normal(-5.5, 0.1, 10)) == -5.0)
+
     p1, p0 = bd.persistence_rates(np.array([1, 1, 1, 0, 0, 0.0]), np.ones(6, bool))
     check("persistence: flare-day and quiet-day follow-on rates", abs(p1 - 2 / 3) < 1e-9 and p0 == 0.0,
           f"{p1}, {p0}")
     check("Brier skill: a perfect forecast scores 1", bd.bss(yy, yy, np.full_like(yy, 0.3)) == 1.0)
+
+
+def test_paper_metrics():
+    """scripts/paper/paper_metrics.py on synthetic predictions with known answers."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("paper_metrics", ROOT / "scripts" / "paper" / "paper_metrics.py")
+    pm = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pm)
+    rng = np.random.default_rng(5)
+    occ, hor, qs = [15, 30, 60], [1, 5, 15, 30, 60], [0.1, 0.5, 0.9]
+
+    def preds(n, skill):
+        t = 1.78e9 + np.sort(rng.uniform(0, 12 * 86400, n))
+        y = (rng.random(n) < 0.2).astype(float)
+        yo = np.stack([(rng.random(n) < 0.25).astype(float) for _ in occ], 1)
+        truth = rng.normal(-6, 0.5, (n, len(hor)))
+        sd = 0.2
+        mid = truth + rng.normal(0, sd, truth.shape)
+        return {"y_t_unix": t, "y_nowcast_mask": np.ones(n), "y_in_flare": y,
+                "p_inflare": np.clip(0.2 + skill * (y - 0.2) + rng.normal(0, 0.15, n), 0, 1),
+                "y_occurrence_mask": np.ones((n, 3)), "y_occurrence": yo,
+                "p_occurrence": np.clip(0.25 + skill * (yo - 0.25) + rng.normal(0, 0.15, yo.shape), 0, 1),
+                "y_nowcast": truth[:, 0], "nowcast": mid[:, 0], "y_persistence": truth[:, 0] + 0.3,
+                "y_forecast_mask": np.ones((n, len(hor))), "y_forecast": truth,
+                "forecast": np.stack([mid - 1.2816 * sd, mid, mid + 1.2816 * sd], -1)}
+
+    val, good, weak = preds(6000, 0.6), preds(6000, 0.6), None
+    weak = {**good, "p_inflare": np.clip(0.2 + 0.1 * (good["y_in_flare"] - 0.2) + rng.normal(0, 0.15, 6000), 0, 1)}
+    sel = np.ones(6000, bool)
+    fit = pm.fit_on_validation(val, sel, occ)
+    check("validation threshold separates the classes", 0.2 < fit["in_flare"]["threshold"] < 0.8,
+          str(fit["in_flare"]["threshold"]))
+    rows = pm.classification("E4", "common", good, sel, fit, occ)
+    got = {(r["head"], r["metric"]): r for r in rows}
+    cm = sum(got[("in_flare", k)]["value"] for k in ("TP", "FP", "FN", "TN"))
+    check("confusion matrix adds up to the samples", cm == got[("in_flare", "TSS")]["n_samples"] == 6000)
+    tss = got[("in_flare", "TSS")]
+    days = np.unique(np.floor(good["y_t_unix"] / 86400)).size
+    check("TSS carries a day-block interval around it", tss["ci95_low"] <= tss["value"] <= tss["ci95_high"]
+          and tss["n_days"] == days, str(tss))
+    check("every head and metric is present", len({r["head"] for r in rows}) == 4
+          and {"ROC_AUC", "TSS", "POD_recall", "precision", "F1", "false_alarm_ratio", "false_positive_rate",
+               "Brier_raw", "BSS_raw", "Brier_calibrated", "BSS_calibrated"} <= {r["metric"] for r in rows})
+    fit_w = pm.fit_on_validation({**val, "p_inflare": weak["p_inflare"]}, sel, occ)
+    pr = {(r["quantity"], r["metric"]): r for r in pm.paired("E4", "E1", "common", good, weak, sel, fit, fit_w,
+                                                              occ, hor, qs)}
+    d = pr[("in_flare", "ROC_AUC")]
+    check("a better model wins the paired AUC with an interval above zero",
+          d["value"] > 0 and d["ci95_low"] > 0 and d["ci_excludes_zero"], str(d))
+    check("identical flux forecasts differ by exactly zero", pr[("flux", "MAE_dex")]["value"] == 0.0)
+    unc = {(r["horizon_min"], r["metric"]): r["value"] for r in pm.uncertainty("E4", "common", good, sel, val, sel,
+                                                                            hor, qs)}
+    check("a well-specified 80% interval covers about 80%", abs(unc[(15, "coverage_raw")] - 0.8) < 0.03
+          and abs(unc[(15, "scale_from_validation")] - 1.0) < 0.1, str(unc[(15, "coverage_raw")]))
+    rel = [r for r in pm.reliability("E4", "common", good, sel, fit, occ)
+           if r["head"] == "in_flare" and r["probability"] == "calibrated" and r["n_samples"] > 200]
+    check("calibrated forecasts match observed frequencies",
+          all(abs(r["mean_forecast"] - r["observed_frequency"]) < 0.1 for r in rel), str(rel[:2]))
+    fr = pm.flux("E4", "common", good, sel, hor, qs) + pm.flux_references("common", good, sel, hor, qs,
+                                                                          good["y_nowcast"] + 0.1, -6.0)
+    check("flux rows for the model and the references",
+          {r["experiment"] for r in fr} >= {"E4", "reference: GOES flux now (persistence)",
+                                            "reference: climatology (training mean)"})
 
 
 def test_sealed_forecast_check():
