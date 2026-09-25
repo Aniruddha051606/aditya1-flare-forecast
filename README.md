@@ -197,7 +197,16 @@ freeze, predict, report, baselines) reload that run's own `reports/config.json`.
 
 - `python -m solarflare day-forecast --day YYYY-MM-DD [--extra-cache DIR]` writes a sealed
   (SHA-256) probability of a >= C1 and a >= M1 flare for that UTC day, from the latest SoLEXS data
-  and the frozen day models. No GOES is read, and a day is never re-issued.
+  and the frozen day models. No GOES is read, and a day is never re-issued. Keep new downloads out
+  of the main cache (it would move the train/test split): cache them into their own folder with
+  `python -m solarflare cache --data-root NEW --cache-dir NEW_CACHE` and pass that as `--extra-cache`.
+- `python -m solarflare day-forecast --score --goes-dir NEWER_GOES --out FOLDER` checks every sealed
+  forecast's SHA-256 and scores it against GOES once GOES covers its day (`SCORES.md`). Download
+  newer GOES into a dated folder so the study's `goes_dir` stays as it was.
+- The day models are version 2 (`outputs/dayahead/frozen_day_models_v2.pkl`, refrozen alone with
+  `python -m solarflare dayahead --freeze-only`): fitted before the test period and recalibrated
+  (isotonic) on it, probabilities kept within 1-99%. Version 1 issued raw probabilities, and its
+  >= C1 models swung between extremes; its file is kept for the forecasts sealed with it.
 - `scripts/forward_check/` replays the frozen network minute by minute on days uploaded after the
   run and draws model-vs-GOES PNGs (`predict_after_test.py`, `plot_days.py`); existing images are
   never overwritten.

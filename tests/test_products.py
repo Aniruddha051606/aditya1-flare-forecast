@@ -398,6 +398,18 @@ def test_day_forecast_pieces():
         back = pickle.loads(path.read_bytes())
     p = back["models"]["C@0"].predict_proba(feat.to_numpy()[:5])[:, 1]
     check("frozen models reload and predict", back["features"] == ["signal", "noise"] and p.shape == (5,))
+    check("version 2: every model carries a recalibration fitted on the test period",
+          back["version"] == 2 and set(back["recalibration"]) == set(back["models"])
+          and back["skill"]["C@0"]["n_recalibration"] > 0)
+    rows = feat.to_numpy()[:300]
+    ps = np.array([da.day_probability(back, "C@0", r)[0] for r in rows])
+    yy = y_next[:300]
+    check("issued probabilities stay inside the clip and rank flare hours higher",
+          ps.min() >= da.PROB_CLIP[0] and ps.max() <= da.PROB_CLIP[1] and ps[yy == 1].mean() > ps[yy == 0].mean(),
+          f"{ps.min():.3f}-{ps.max():.3f}")
+    v1 = {"models": back["models"]}
+    p1, raw1 = da.day_probability(v1, "C@0", rows[0])
+    check("a version 1 model file issues its raw output", p1 == raw1)
 
 
 def test_model_test_pieces():

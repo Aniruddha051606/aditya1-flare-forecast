@@ -37,7 +37,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from solarflare.products.dayahead import (FROZEN_DAY, activity_features, catalogue_flares,
+from solarflare.products.dayahead import (FROZEN_DAY, activity_features, catalogue_flares, day_probability,
                                           flux_series, solexs_minutes)
 from solarflare.settings import load_settings
 
@@ -213,8 +213,9 @@ def main(argv=None) -> int:
             print(f"the last usable data hour is {lead:.0f} h before {args.day}; the frozen leads "
                   f"({', '.join(k for k in fz['models'] if k.startswith(c))}) do not reach that far")
             return 1
-        p = float(fz["models"][key].predict_proba(X[[i]])[0, 1])
-        result[c] = {"probability": round(p, 3), "model": key, **fz["skill"][key]}
+        p, raw = day_probability(fz, key, X[i])
+        result[c] = {"probability": round(p, 3), "raw_model_output": round(raw, 3), "model": key,
+                     **fz["skill"][key]}
 
     sealed = {
         "forecast_for": f"{args.day} 00:00-24:00 UTC ({(day0 + timedelta(hours=5.5)):%d %b %H:%M} IST onwards)",
@@ -222,7 +223,7 @@ def main(argv=None) -> int:
         "origin_utc": datetime.fromtimestamp(o[i], UTC).strftime("%Y-%m-%d %H:%M"),
         "lead_hours": round(lead, 2),
         "data_used": f"SoLEXS minutes to {datetime.fromtimestamp(float(tm[-1]) + 60, UTC):%Y-%m-%d %H:%M} UTC; "
-                     f"day models frozen {fz['created_utc']} UTC; no GOES",
+                     f"day models version {fz.get('version', 1)} frozen {fz['created_utc']} UTC; no GOES",
         "new_solexs_flares_after_catalogue": [
             [datetime.fromtimestamp(e.peak_unix, UTC).strftime("%Y-%m-%d %H:%M"), f"{e.peak_flux:.2e}"]
             for e in new],

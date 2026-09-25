@@ -268,22 +268,49 @@ def fit_score(X, y, tr, va, te, weeks, clim):
 #: starting ``lead`` hours after the last data hour". A forecast for a calendar
 #: day picks the lead nearest (day start - last data hour).
 DAY_LEADS_H = (0, 6, 12, 18, 24, 30, 36, 42)
-FROZEN_DAY = "frozen_day_models.pkl"
+#: Version 2 (2026-09-25). Version 1 (frozen_day_models.pkl, kept for the forecasts
+#: sealed with it) refitted each model on every labelled hour and issued its raw
+#: probability; its >= C1 models swung between extremes, and in the blind replay
+#: raw >= C1 probabilities had no Brier skill (outputs/tests/blind_dayahead).
+#: Version 2 fits on the hours before the test period and maps the output through
+#: an isotonic recalibration fitted on the test period -- the most recent held-out
+#: hours, which carry the current flare rate -- the recipe the replay scored one
+#: block earlier. Probabilities are clipped to PROB_CLIP: a day forecast never
+#: says "impossible" or "certain".
+FROZEN_DAY = "frozen_day_models_v2.pkl"
+PROB_CLIP = (0.01, 0.99)
+
+
+def day_probability(fz: dict, key: str, x: np.ndarray) -> tuple[float, float]:
+    """(issued probability, raw model output) of frozen day model ``key`` for one
+    feature row. Version 1 models carry no recalibration and issue the raw value."""
+    from solarflare import probcal
+
+    raw = float(fz["models"][key].predict_proba(np.asarray(x, dtype=np.float64).reshape(1, -1))[0, 1])
+    recal = fz.get("recalibration", {}).get(key)
+    if recal is None:
+        return raw, raw
+    lo, hi = fz.get("clip", PROB_CLIP)
+    return float(np.clip(probcal.apply(recal, np.array([raw]))[0], lo, hi)), raw
 
 
 def freeze_day_models(feat: pd.DataFrame, have: np.ndarray, o: np.ndarray, truth, cal,
                       data_end: float) -> dict:
-    """Fit and freeze the day models on SoLEXS activity features.
+    """Fit and freeze the day models (version 2) on SoLEXS activity features.
 
-    Family (logistic or trees) chosen on validation AUC, test AUC recorded, then
-    refitted on every labelled hour so the operational model uses all history.
-    SHARP is left out: it added nothing (DAYAHEAD.md) and arrives late."""
+    Per class and lead: family (logistic or trees) chosen on validation AUC and
+    its test AUC recorded (fitted on training hours, as in DAYAHEAD.md); then the
+    chosen family refitted on every hour before the test period, and an isotonic
+    recalibration fitted on its test-period output. SHARP is left out: it added
+    nothing (DAYAHEAD.md) and arrives late."""
     import sklearn
     from sklearn.metrics import roc_auc_score
 
+    from solarflare import probcal
+
     X = feat.to_numpy(dtype=np.float64)
     finite = np.isfinite(X).all(1)
-    models, skill = {}, {}
+    models, skill, recals = {}, {}, {}
     for L0 in DAY_LEADS_H:
         L1 = L0 + 24.0
         for c, (y, gok) in window_targets(truth, o, L0, L1).items():
@@ -301,16 +328,21 @@ def freeze_day_models(feat: pd.DataFrame, have: np.ndarray, o: np.ndarray, truth
                     best, best_auc, fitted = name, a, m
             test_auc = (round(float(roc_auc_score(y[te], fitted.predict_proba(X[te])[:, 1])), 3)
                         if te.sum() and len(np.unique(y[te])) == 2 else None)
-            allh = tr | va | te
+            fit_on = tr | va
             key = f"{c}@{L0:g}"
-            models[key] = _models()[best].fit(X[allh], y[allh])
+            models[key] = _models()[best].fit(X[fit_on], y[fit_on])
+            can_recal = te.sum() >= 50 and len(np.unique(y[te])) == 2
+            recals[key] = (probcal.fit(models[key].predict_proba(X[te])[:, 1], y[te]) if can_recal
+                           else dict(probcal.IDENTITY))
+            allh = tr | va | te
             recent = base & (o >= o[allh].max() - 30 * 86400.0)
             skill[key] = {"family": best, "val_AUC": round(best_auc, 3), "test_AUC": test_auc,
                           "base_rate_train": round(float(y[tr].mean()), 3),
+                          "base_rate_recalibration": round(float(y[te].mean()), 3) if te.any() else None,
                           "base_rate_last_30d": round(float(y[recent].mean()), 3) if recent.any() else None,
-                          "n_fit": int(allh.sum())}
-    return {"version": 1, "models": models, "skill": skill, "features": list(feat.columns),
-            "leads_h": list(DAY_LEADS_H), "window_h": 24.0, "calibration": cal,
+                          "n_fit": int(fit_on.sum()), "n_recalibration": int(te.sum()) if can_recal else 0}
+    return {"version": 2, "models": models, "recalibration": recals, "clip": PROB_CLIP, "skill": skill,
+            "features": list(feat.columns), "leads_h": list(DAY_LEADS_H), "window_h": 24.0, "calibration": cal,
             "train_end": float(TRAIN_END), "test_start": float(TEST_START), "data_end": float(data_end),
             "created_utc": datetime.now(UTC).strftime("%Y-%m-%d %H:%M"), "sklearn": sklearn.__version__}
 
@@ -338,6 +370,8 @@ def main(argv=None) -> int:
     ap.add_argument("--catalog", default=str(S.catalog / "master_catalog.csv"))
     ap.add_argument("--run-dir", default=None, help="trained run whose split to use (default: the final model)")
     ap.add_argument("--out", default=str(S.dayahead))
+    ap.add_argument("--freeze-only", action="store_true",
+                    help="only (re)freeze the day models day-forecast uses; skip the study")
     args = ap.parse_args(argv)
     global TRAIN_END, TEST_START
     split = S.split_dates(Path(args.run_dir) if args.run_dir else None)
@@ -355,6 +389,16 @@ def main(argv=None) -> int:
     lf, hard = flux_series(cal, rm, vm, hm, vh)
     known, pf = catalogue_flares(args.catalog)
     xf, have, o = activity_features(tm, lf, hard, known, pf)
+    if args.freeze_only:
+        frozen = freeze_day_models(xf, have, o, truth, cal, data_end=float(tm[-1] + 60.0))
+        with open(out / FROZEN_DAY, "wb") as fh:
+            pickle.dump(frozen, fh)
+        for k, v in frozen["skill"].items():
+            print(f"{k}: {v['family']}, val AUC {v['val_AUC']}, test AUC {v['test_AUC']}, recalibrated on "
+                  f"{v['n_recalibration']} hours (rate {v['base_rate_recalibration']})", flush=True)
+        print(f"froze {len(frozen['models'])} day models (version {frozen['version']}) -> {out / FROZEN_DAY} "
+              f"({time.time() - t0:.0f} s)")
+        return 0
     by_h = {H: window_targets(truth, o, 0.0, H) for H in HORIZONS_H}
     tgt = {(c, H): by_h[H][c] for c in CLASSES for H in HORIZONS_H}
     sf, sharp_info = sharp_features(Path(args.sharp_dir), o)
