@@ -607,6 +607,30 @@ def write_index(folder: Path) -> Path:
                      f"{_ci(v['BSS_vs_test_rate_recalibrated_ci'])}; accuracy {100 * v['accuracy']:.0f}% "
                      f"(always-the-common-answer {100 * v['accuracy_always_majority']:.0f}%).")
         L.append("")
+    sealed = sorted((folder / "live_dayahead" / "sealed").glob("forecast_*.json"))
+    if sealed:
+        L += ["## Sealed day-ahead forecasts -- live_dayahead/sealed/", "",
+              "Issued by `python -m solarflare day-forecast` from SoLEXS days downloaded after the models were "
+              "frozen, each with a SHA-256 of its content and never re-issued; scored once GOES covers the day.", "",
+              "| Day | >= C1 | >= M1 | issued (UTC) | lead | sha256 | outcome (GOES) |",
+              "|---|---:|---:|---|---:|---|---|"]
+        scores = _read(folder / "live_dayahead" / "sealed" / "scores.json") or {}
+        outcome = {r["day"]: r for r in scores.get("forecasts", [])}
+        for f in sealed:
+            s = _read(f) or {}
+            day = f.stem.removeprefix("forecast_")
+            o = outcome.get(day, {})
+            res = (f"C1 {'yes' if o['C']['happened'] else 'no'}, M1 {'yes' if o['M']['happened'] else 'no'} "
+                   f"(largest {o.get('largest_goes_flare') or 'none'})" if o.get("status") == "scored"
+                   else o.get("status", "pending"))
+            L.append(f"| {day} | {100 * s['C']['probability']:.0f}% | {100 * s['M']['probability']:.0f}% | "
+                     f"{s['issued_utc']} | {s['lead_hours']:.0f} h | {s['sha256'][:16]} | {res} |")
+        if scores.get("scored"):
+            L += ["", f"Mean Brier score over {scores['scored']} scored days, forecast vs the last-30-day rate: "
+                  f">= C1 {scores['mean_brier_C']:.3f} vs {scores['mean_reference_brier_C']:.3f}; "
+                  f">= M1 {scores['mean_brier_M']:.3f} vs {scores['mean_reference_brier_M']:.3f} "
+                  "(a record, not yet a measurement: see live_dayahead/sealed/SCORES.md)."]
+        L.append("")
     folder.mkdir(parents=True, exist_ok=True)
     out = folder / "README.md"
     out.write_text("\n".join(L), "utf-8")

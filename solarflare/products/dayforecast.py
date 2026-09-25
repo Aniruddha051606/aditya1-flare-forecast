@@ -13,6 +13,15 @@ The forecast is issued from the last full hour of SoLEXS data before the day
 starts, with the model whose lead is nearest (day start - that hour). It is
 written once to outputs/dayahead/forecasts/forecast_<day>.json with a SHA-256 of
 its content; a day that already has a sealed forecast is never re-issued.
+
+    python -m solarflare day-forecast --score --goes-dir D:/Data/goes_new
+
+scores every sealed forecast in ``--out`` whose day GOES has covered: the seal is
+checked first (a forecast edited after issue fails it and is reported, not
+scored), then the outcome (a GOES flare >= C1 / >= M1 peaking that UTC day, GOES
+observing >= 80% of it) and the Brier score of the forecast and of the
+last-30-day rate the forecast carried as its reference. Writes scores.json and
+SCORES.md next to the forecasts.
 """
 
 from __future__ import annotations
@@ -67,10 +76,83 @@ def pick_lead(keys: list[str], cls: str, lead_h: float) -> tuple[str, float]:
     return f"{cls}@{best:g}", abs(best - lead_h)
 
 
+def open_sealed(path: Path) -> tuple[dict, bool]:
+    """A sealed forecast and whether its content still matches its SHA-256."""
+    d = json.loads(path.read_text("utf-8"))
+    digest = d.pop("sha256", "")
+    body = json.dumps(d, indent=2, sort_keys=True)
+    return d, hashlib.sha256(body.encode()).hexdigest() == digest
+
+
+def score_sealed(folder: Path, goes_dir: Path) -> int:
+    from solarflare.io.goes import load_goes
+    from solarflare.products.dayahead import CLASSES, window_targets
+
+    truth = load_goes(goes_dir)
+    rows = []
+    for f in sorted(folder.glob("forecast_*.json")):
+        d, intact = open_sealed(f)
+        day = f.stem.removeprefix("forecast_")
+        d0 = datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=UTC).timestamp()
+        row = {"day": day, "seal_intact": intact, "issued_utc": d.get("issued_utc"),
+               "lead_hours": d.get("lead_hours")}
+        if not intact:
+            rows.append({**row, "status": "seal broken: not scored"})
+            continue
+        out = window_targets(truth, np.array([d0]), 0.0, 24.0)
+        if not all(bool(cov[0]) for _, cov in out.values()):
+            rows.append({**row, "status": "GOES does not cover the day yet"})
+            continue
+        big = [fl for fl in truth.flares if d0 <= fl.peak_unix < d0 + 86400.0]
+        row.update(status="scored", largest_goes_flare=max(
+            (fl.goes_class for fl in big), key=lambda c: ("ABCMX".index(c[0]), float(c[1:])), default=""))
+        for c in CLASSES:
+            y, p = float(out[c][0][0]), float(d[c]["probability"])
+            ref = d[c].get("base_rate_last_30d")
+            row[c] = {"probability": p, "happened": bool(y), "brier": round((p - y) ** 2, 4),
+                      "reference_rate": ref, "reference_brier": round((ref - y) ** 2, 4) if ref is not None else None}
+        rows.append(row)
+    scored = [r for r in rows if r["status"] == "scored"]
+    summary = {"goes_dir": str(goes_dir), "scored": len(scored), "forecasts": rows}
+    for c in CLASSES:
+        if scored:
+            b = [r[c]["brier"] for r in scored]
+            rb = [r[c]["reference_brier"] for r in scored if r[c]["reference_brier"] is not None]
+            summary[f"mean_brier_{c}"] = round(float(np.mean(b)), 4)
+            summary[f"mean_reference_brier_{c}"] = round(float(np.mean(rb)), 4) if rb else None
+    (folder / "scores.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    md = ["# Sealed day-ahead forecasts, scored", "",
+          f"Outcome truth: GOES in {goes_dir}. Reference: the last-30-day rate each forecast carried when issued. "
+          f"{len(scored)} of {len(rows)} forecasts scored; with this few days the scores are a record, "
+          "not a measurement of skill.", "",
+          "| Day | seal | >= C1 said | happened | >= M1 said | happened | largest GOES flare | status |",
+          "|---|---|---:|---|---:|---|---|---|"]
+    for r in rows:
+        cm = [(f"{100 * r[c]['probability']:.0f}%", "yes" if r[c]["happened"] else "no") if c in r else ("", "")
+              for c in CLASSES]
+        md.append(f"| {r['day']} | {'intact' if r['seal_intact'] else 'BROKEN'} | {cm[0][0]} | {cm[0][1]} | "
+                  f"{cm[1][0]} | {cm[1][1]} | {r.get('largest_goes_flare', '')} | {r['status']} |")
+    if scored:
+        md += ["", "Mean Brier score (lower is better), forecast vs reference rate: "
+               + "; ".join(f">= {c}1 {summary[f'mean_brier_{c}']:.3f} vs {summary[f'mean_reference_brier_{c}']:.3f}"
+                           for c in CLASSES) + "."]
+    (folder / "SCORES.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+    for r in rows:
+        said = "".join(f"; >= {c}1 said {100 * r[c]['probability']:.0f}%, "
+                       f"{'happened' if r[c]['happened'] else 'did not happen'}"
+                       for c in CLASSES) if r["status"] == "scored" else ""
+        largest = f" (largest GOES flare {r.get('largest_goes_flare') or 'none'})" if said else ""
+        print(f"{r['day']}: {r['status']}{said}{largest}")
+    print(f"-> {folder / 'SCORES.md'}")
+    return 0
+
+
 def main(argv=None) -> int:
     S = load_settings()
     ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
-    ap.add_argument("--day", required=True, help="UTC day to forecast, YYYY-MM-DD")
+    ap.add_argument("--day", help="UTC day to forecast, YYYY-MM-DD")
+    ap.add_argument("--score", action="store_true", help="score the sealed forecasts in --out")
+    ap.add_argument("--goes-dir", default=str(S.goes_dir), help="--score: GOES folder with the outcome days")
     ap.add_argument("--cache-dir", default=str(S.cache))
     ap.add_argument("--extra-cache", action="append", default=[],
                     help="another preprocessing cache with newer SoLEXS days (repeatable)")
@@ -79,6 +161,10 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=str(S.dayahead / "forecasts"))
     args = ap.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
+    if args.score:
+        return score_sealed(Path(args.out), Path(args.goes_dir))
+    if not args.day:
+        ap.error("--day is required (or --score)")
 
     day0 = datetime.strptime(args.day, "%Y-%m-%d").replace(tzinfo=UTC)
     dest = Path(args.out) / f"forecast_{args.day}.json"

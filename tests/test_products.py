@@ -450,6 +450,24 @@ def test_model_test_pieces():
     check("Brier skill: a perfect forecast scores 1", bd.bss(yy, yy, np.full_like(yy, 0.3)) == 1.0)
 
 
+def test_sealed_forecast_check():
+    import hashlib
+    import json
+
+    from solarflare.products.dayforecast import open_sealed
+
+    with tempfile.TemporaryDirectory() as tmp:
+        f = Path(tmp) / "forecast_2026-01-02.json"
+        sealed = {"issued_utc": "2026-01-01 20:00:00", "C": {"probability": 0.8}, "M": {"probability": 0.12}}
+        body = json.dumps(sealed, indent=2, sort_keys=True)
+        f.write_text(json.dumps({"sha256": hashlib.sha256(body.encode()).hexdigest(), **sealed}, indent=2), "utf-8")
+        _, ok = open_sealed(f)
+        check("an untouched sealed forecast passes its SHA-256 check", ok)
+        f.write_text(f.read_text("utf-8").replace("0.12", "0.02"), "utf-8")
+        _, ok = open_sealed(f)
+        check("a forecast edited after sealing fails its check", not ok)
+
+
 def main() -> int:
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     print(f"Running {len(tests)} product test groups\n")
