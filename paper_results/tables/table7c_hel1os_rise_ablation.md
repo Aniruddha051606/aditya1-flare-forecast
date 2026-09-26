@@ -8,4 +8,4 @@
 
 From outputs/ablations/hel1os/hel1os_value.json: holds up: every seed's interval excludes zero. Peak flux predicted during the rise, 3 time-ordered folds; intervals: bootstrap over flares (1000 draws, seed 0).
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:47 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:18 UTC).

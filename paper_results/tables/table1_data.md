@@ -9,4 +9,4 @@
 Labelled flares by class: {'C': 7045, 'M': 1385, 'X': 81}.
 Split: training 2023-12-01 to 2025-08-07, validation 2025-09-03 to 2026-03-03, test 2026-03-30 to 2026-09-21; 27-day embargoes.
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:45 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:16 UTC).

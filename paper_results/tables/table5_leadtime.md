@@ -24,4 +24,4 @@
 E4 alerts at every operating point, references at the primary one (2 and 0.5 false alarms per day on validation). Lead: GOES peak minus the first alert minute; chance: the same windows moved 2 h; event TSS = detection rate - chance. Thresholds fixed on validation. A false alarm is an ON episode with no flare, so a signal that is almost always ON has few false alarms but a high time on and chance rate (the hot-onset trigger row): read false alarms together with time on and chance.
 Test period 2026-03-30 04:53 to 2026-09-21 00:00 UTC (150.2 days with data).
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:46 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:17 UTC).

@@ -12,4 +12,4 @@
 
 Classes with fewer than 20 flares are flagged: indicative only.
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:46 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:17 UTC).

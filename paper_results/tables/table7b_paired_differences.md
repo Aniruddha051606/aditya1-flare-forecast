@@ -95,4 +95,4 @@
 
 Positive AUC/TSS/BSS differences and negative MAE differences favour the first model. Intervals resample the same whole test days for both models (500 draws, 200 for AUC, seed 0).
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:47 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:18 UTC).

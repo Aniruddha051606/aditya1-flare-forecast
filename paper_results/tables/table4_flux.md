@@ -40,4 +40,4 @@
 
 log10 GOES-18 XRS-B flux; model = median forecast. Brackets: 95% intervals resampling whole test days.
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:46 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:17 UTC).

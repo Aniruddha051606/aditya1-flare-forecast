@@ -268,6 +268,30 @@ def table7():
            "the same whole test days for both models (500 draws, 200 for AUC, seed 0)."])
 
 
+def table7d():
+    gr = _csv("metrics_gap_robustness.csv")
+    rows = []
+    for key in dict.fromkeys((r["experiment"], r["instrument"], r["coverage_group"]) for r in gr):
+        e, inst, grp = key
+        sel = [r for r in gr if (r["experiment"], r["instrument"], r["coverage_group"]) == key]
+        a = _one(sel, head="in_flare", metric="ROC_AUC")
+        t = _one(sel, head="in_flare", metric="TSS")
+        b = _one(sel, head="flare_within_15min", metric="ROC_AUC")
+        m = _one(sel, horizon_min=15, metric="MAE")
+        rows.append({"experiment": e, "grouped by": f"{inst} input coverage", "coverage": grp,
+                     "windows": a["n_samples"] if a else "", "flare windows": a["n_positive"] if a else "",
+                     "days": a["n_days"] if a else "",
+                     "AUC in progress": ci(a), "TSS in progress": ci(t), "AUC within 15 min": ci(b),
+                     "MAE flux +15 min (dex)": ci(m),
+                     "note": "" if a and int(a["n_positive"]) >= 30 else "fewer than 30 flare windows: indicative only"})
+    write("table7d_gap_robustness", "Table 7d. Performance against real observation gaps (each experiment's own test "
+          "windows)", rows,
+          ["Coverage: fraction of the 2 h input window the instrument observed (E1 / E2 windows need at least "
+           "50%; E4 windows under 50% for one instrument are carried by the other). Real "
+           "gaps in the data; nothing simulated. Thresholds and calibration as in Table 3. 95% intervals resampling "
+           "whole test days. Groups with fewer than 100 windows are omitted."])
+
+
 def table7c():
     hv = _json(S.ablations / "hel1os" / "hel1os_value.json")
     abl = [{"seed": s["seed"].removeprefix("seed_"), "peak log-MAE soft only (dex)": f(s["mae_soft_only"], 4),
@@ -282,7 +306,7 @@ def table7c():
 
 def main() -> int:
     status = []
-    for fn in (table1, table2, table3, table4, table5, table6, table7, table7c):
+    for fn in (table1, table2, table3, table4, table5, table6, table7, table7c, table7d):
         try:
             fn()
             status.append(f"- {fn.__name__}: written")

@@ -25,6 +25,31 @@ cannot drift from what the code produced.
 
 ---
 
+## Paper 1 results (Solar Physics): `paper_results/`
+
+The results package for the SoLEXS + HEL1OS paper (GOES-18 XRS as truth only; SUIT is not part of
+it). Every file is written by a script from data or result files; start with
+`paper_results/PAPER_RESULTS_SUMMARY.md`. Reproduce it all with
+`python scripts/paper/run_all_paper_experiments.py`.
+
+| Needed for the paper | Where |
+|---|---|
+| Frozen split: dates, 27-day embargo, windows, flare counts, seed, leakage checks | `02_experiment_split.json` / `.md`, `02b_leakage_prevention.md`, Fig. 4 |
+| E1 SoLEXS only, E2 HEL1OS only, E4 SoLEXS + HEL1OS: runs | `outputs/paper/E1_solexs_only`, `outputs/paper/E2_hel1os_only`, `outputs/model`; `experiments.json`, Table 2 |
+| Classification (AUC, TSS, POD, precision, F1, FAR, POFD, FB, Brier, BSS) | `metrics_classification.csv`, Tables 3 / 3b |
+| Flux forecasts at now, +1, +5, +15, +30, +60 min, with references | `metrics_forecast.csv`, Table 4, Fig. 5 |
+| Paired E4 - E1 and E4 - E2 on the same windows, 95% day-block intervals | `paired_comparisons.csv`, Table 7b, Fig. 6 |
+| Calibration: raw vs calibrated, reliability, Brier / BSS | `reliability.csv`, Table 6, Fig. 7 |
+| Prediction intervals: q10 / q50 / q90 coverage, width, pinball loss | `metrics_uncertainty.csv`, Table 6b |
+| Lead time, per flare (not per sample): median, IQR, 10th / 90th percentiles | `leadtime_events.csv`, `leadtime_summary.csv`, Tables 5 / 5b, Fig. 8 |
+| False-alarm operating points chosen on validation | `operating_points.csv`, Table 5 |
+| Robustness: missing SoLEXS or HEL1OS; real observation gaps | `metrics_classification.csv` / `metrics_forecast.csv` (withheld rows), `metrics_gap_robustness.csv`, Tables 7 / 7d, Fig. 10 |
+| Data, event example, architecture, pipeline, example forecast | Figs. 1, 2, 3, 9; `01_data_inventory.json` / `.md`, Table 1 |
+| Environment, seeds, configs, checksums, commands | `00_environment.json`, `RESULTS_MANIFEST.json` |
+| Tests | `03_test_status.md` |
+
+---
+
 ## What the problem statement asks, and where it is answered
 
 | Asked for | Answered by | Output |

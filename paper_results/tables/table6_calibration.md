@@ -17,4 +17,4 @@
 
 Isotonic calibration fitted on each experiment's validation windows only. BSS against the test-period base rate (solarflare.metrics.brier_skill_score).
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:46 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:18 UTC).

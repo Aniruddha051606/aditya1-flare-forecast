@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "generated_utc": "2026-09-26 05:02:14",
-    "git_commit": "48c714ce86c7eee357950d6ca164337172b0c957+uncommitted-changes",
+    "generated_utc": "2026-09-26 05:25:19",
+    "git_commit": "24cba4ebb66f829c17237613c203351f2075fd4c+uncommitted-changes",
     "python": "3.14.7",
     "script": "manifest.py"
   },
@@ -447,6 +447,7 @@
       "scripts/paper/data_and_split.py",
       "scripts/paper/environment.py",
       "scripts/paper/evaluate_experiments.py",
+      "scripts/paper/gap_robustness.py",
       "scripts/paper/leadtime_tables.py",
       "scripts/paper/make_tables.py",
       "scripts/paper/manifest.py",
@@ -693,6 +694,11 @@
       "sha256": "dee6a642d05fbcc6bb3a42a29d96ef3b9d03fc735c2f4ddaf4b7b05d5836ba08"
     },
     {
+      "path": "paper_results/metrics_gap_robustness.csv",
+      "bytes": 235731,
+      "sha256": "bb2163f82bacbd1788fa1462104f7ebd6dc303710d0fb976b75cedc91e7a8e3a"
+    },
+    {
       "path": "paper_results/metrics_uncertainty.csv",
       "bytes": 15288,
       "sha256": "703db51e4f940da74112efd493e57a678630d4f3b36cf48c9094c10d595cd6b2"
@@ -709,8 +715,8 @@
     },
     {
       "path": "paper_results/PAPER_RESULTS_SUMMARY.md",
-      "bytes": 12890,
-      "sha256": "d5d2ecf30b3b4d07a5d235448a9aa8f66003f6d7a974c5483902e41bc186367e"
+      "bytes": 15486,
+      "sha256": "aa37ca6a0929dda1bfe7d007559f9f0737b0c234a887d2aba5917118a85aa72b"
     },
     {
       "path": "paper_results/plotting/diagram.py",
@@ -789,8 +795,8 @@
     },
     {
       "path": "paper_results/tables/README.md",
-      "bytes": 229,
-      "sha256": "e1d5df2c71f94b1752493ece1270bbb34b16851432de986f6fb3db04b3145654"
+      "bytes": 249,
+      "sha256": "c0af34aa13eb9b78b90f118977f81c0a90768b34cea682f70db15a260df602b8"
     },
     {
       "path": "paper_results/tables/table1_data.csv",
@@ -800,7 +806,7 @@
     {
       "path": "paper_results/tables/table1_data.md",
       "bytes": 823,
-      "sha256": "41eae00f87240eafd9f1063a5027af50af3c7791f64ab7c3b83863d7ef17e802"
+      "sha256": "205b2a7a447d6a3bfda5488e8181667032f4441dd69ae1d1fc2f749f21d0634a"
     },
     {
       "path": "paper_results/tables/table2_experiments.csv",
@@ -810,7 +816,7 @@
     {
       "path": "paper_results/tables/table2_experiments.md",
       "bytes": 770,
-      "sha256": "70bddd81c2064e51949f07cf71d624fd25756e4ae0f5a9c50cd3de37a604368b"
+      "sha256": "af6e46eb10173235931110b9894761682ad2cab5f8b578ef76f3fc9a1da9057e"
     },
     {
       "path": "paper_results/tables/table3_classification.csv",
@@ -820,7 +826,7 @@
     {
       "path": "paper_results/tables/table3_classification.md",
       "bytes": 2796,
-      "sha256": "1c13fafe5b5580aa08d8ad9a710045be1a56ec2e18126c17bff5c0e5230828e1"
+      "sha256": "891a9c666e6b8b76956d7b70ec66c678c6ceac8722c19c7ab421a38eb1cd5a8c"
     },
     {
       "path": "paper_results/tables/table3b_classification_native.csv",
@@ -830,7 +836,7 @@
     {
       "path": "paper_results/tables/table3b_classification_native.md",
       "bytes": 2779,
-      "sha256": "8c85293c7ca5fd95daf4f068b13655978ec632c753772ba22e2a5d22a96c46cc"
+      "sha256": "ead87dc556fca12fb4a1a83111ae0013edb0184a24c56083bdc2b7fcf268bff1"
     },
     {
       "path": "paper_results/tables/table4_flux.csv",
@@ -840,7 +846,7 @@
     {
       "path": "paper_results/tables/table4_flux.md",
       "bytes": 3179,
-      "sha256": "7f6509b6d466a0919c115c6185f1cee05ca66ba8cdfbc2f09fe3c78324c09f4b"
+      "sha256": "c6e0c5eb76ad89494ef467b3970bc645a2824687e66779ce2f2472209b710bf5"
     },
     {
       "path": "paper_results/tables/table5_leadtime.csv",
@@ -850,7 +856,7 @@
     {
       "path": "paper_results/tables/table5_leadtime.md",
       "bytes": 3631,
-      "sha256": "3c11b38ff75be410f605986ce8ceeeb380d5fbbb24e9fb4fc91ff527181de342"
+      "sha256": "7a067c88824521f50e2c91e6cb6d6df00d802a7999d9221f6e65acde29998f31"
     },
     {
       "path": "paper_results/tables/table5b_leadtime_by_class.csv",
@@ -860,7 +866,7 @@
     {
       "path": "paper_results/tables/table5b_leadtime_by_class.md",
       "bytes": 1184,
-      "sha256": "9a39543151c74ae03f71de1bb3589a8d22013ddfa6f3e651a368326debe0ad8c"
+      "sha256": "1296262d04a887ea0f9ae21fe819767ee17008908a1031f42c3b866f2036747b"
     },
     {
       "path": "paper_results/tables/table6_calibration.csv",
@@ -870,7 +876,7 @@
     {
       "path": "paper_results/tables/table6_calibration.md",
       "bytes": 1506,
-      "sha256": "d8eb10c967335a20723a5ca785b5a343380a50ebdb74734f2f191bb0c18976fe"
+      "sha256": "31fb5062cf7f28f48bfa3f9ee363169b93f111a4845e7f3560ec5638d8fbf40b"
     },
     {
       "path": "paper_results/tables/table6b_uncertainty.csv",
@@ -880,7 +886,7 @@
     {
       "path": "paper_results/tables/table6b_uncertainty.md",
       "bytes": 1907,
-      "sha256": "c1ac49f516827a69736a3b96bbe92e37adc63a2296f8d0680c9afbf450eadff3"
+      "sha256": "48e98c2e0ed016f3bfbe668dfb3aa5216920d22b07ef92cf227a11472880a08b"
     },
     {
       "path": "paper_results/tables/table7_robustness.csv",
@@ -890,7 +896,7 @@
     {
       "path": "paper_results/tables/table7_robustness.md",
       "bytes": 1016,
-      "sha256": "b91f38b62a783606a021f85ee96e3e7bb82ac917035d8e1b6e43cae31b44c0d4"
+      "sha256": "18e4c3e16636ff07d3c4475bf89ecd8c5485f6588db35cf32313aac7c3eff7fd"
     },
     {
       "path": "paper_results/tables/table7b_paired_differences.csv",
@@ -900,7 +906,7 @@
     {
       "path": "paper_results/tables/table7b_paired_differences.md",
       "bytes": 9359,
-      "sha256": "dd0e0555189891dee203bf517d5ab32c8f6fa1b2fb7916a16c30dc7977223f63"
+      "sha256": "fc281cb342a810291694cd5ecfcc360ad5878186ed434ceceb77686304e35b46"
     },
     {
       "path": "paper_results/tables/table7c_hel1os_rise_ablation.csv",
@@ -910,12 +916,22 @@
     {
       "path": "paper_results/tables/table7c_hel1os_rise_ablation.md",
       "bytes": 744,
-      "sha256": "e0d1d932ab081254dc3e97a4b54f1cd92ff6b3e06c964d81047addd6536cc7fa"
+      "sha256": "a08476dbb204f48f26d5dd3b3f8c67d94ae6340ba99693d582393a5523228697"
+    },
+    {
+      "path": "paper_results/tables/table7d_gap_robustness.csv",
+      "bytes": 2257,
+      "sha256": "469daa4afd159d31ec8e4348456e49599dea4dcd01950241db2266bf3554bd0c"
+    },
+    {
+      "path": "paper_results/tables/table7d_gap_robustness.md",
+      "bytes": 3077,
+      "sha256": "bb76bb325046d09e2b56343d49a254c1c3847fb372f46fd6822d3d6fae3be50c"
     }
   ],
   "manifest_generated": {
-    "generated_utc": "2026-09-26 05:02:14",
-    "git_commit": "48c714ce86c7eee357950d6ca164337172b0c957+uncommitted-changes",
+    "generated_utc": "2026-09-26 05:25:19",
+    "git_commit": "24cba4ebb66f829c17237613c203351f2075fd4c+uncommitted-changes",
     "python": "3.14.7",
     "script": "manifest.py"
   }

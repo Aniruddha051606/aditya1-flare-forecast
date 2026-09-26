@@ -205,6 +205,24 @@ def main() -> int:
     else:
         L += missing("metrics_classification.csv")
 
+    L += ["## Robustness to real observation gaps (each experiment's own test windows)", ""]
+    gr = _csv("metrics_gap_robustness.csv")
+    if gr:
+        L.append("Windows grouped by the fraction of the 2 h input the instrument observed (E1 / E2: at least 50% "
+                 "by the window rule; E4 below 50% where the other instrument carried the window); in-progress AUC "
+                 "and TSS, flux MAE at +15 min:")
+        for key in dict.fromkeys((r["experiment"], r["instrument"], r["coverage_group"]) for r in gr):
+            sel = [r for r in gr if (r["experiment"], r["instrument"], r["coverage_group"]) == key]
+            a = _one(sel, head="in_flare", metric="ROC_AUC")
+            t = _one(sel, head="in_flare", metric="TSS")
+            m = _one(sel, horizon_min=15, metric="MAE")
+            few = "; fewer than 30 flare windows, indicative only" if a and int(a["n_positive"]) < 30 else ""
+            L.append(f"- {key[0]}, {key[1]} coverage {key[2]} ({a['n_samples'] if a else '?'} windows, "
+                     f"{a['n_positive'] if a else '?'} flare windows{few}): AUC {v(a)}, TSS {v(t)}, MAE +15 min {v(m)}")
+        L.append("")
+    else:
+        L += missing("metrics_gap_robustness.csv (scripts/paper/gap_robustness.py)")
+
     L += ["## Ablation (existing, separately trained, 3 seeds)", ""]
     hv = _json("hel1os_value.json", S.ablations / "hel1os")
     if hv:

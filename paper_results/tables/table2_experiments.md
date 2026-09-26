@@ -9,4 +9,4 @@
 Common test windows (both instruments observing): 105,512 on 162 days.
 Same code, split, labels, seed and settings for all; only model.inputs differs (and modality dropout, which needs two instruments).
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:45 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:17 UTC).

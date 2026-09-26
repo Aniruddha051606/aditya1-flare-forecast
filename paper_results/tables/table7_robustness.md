@@ -10,4 +10,4 @@
 
 'withheld': the deployed E4 with one instrument's mask set to zero at prediction time (thresholds and calibration unchanged). E1 and E2 are trained on one instrument. 95% intervals resampling whole test days.
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:47 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:18 UTC).

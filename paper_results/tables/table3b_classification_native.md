@@ -17,4 +17,4 @@
 
 Thresholds: best TSS on each experiment's own validation windows. FAR: false alarm ratio; POFD: false positive rate; FB: frequency bias. Brackets: 95% intervals resampling whole test days (n = 500 draws, 200 for AUC, seed 0). Only the >= C1 threshold is modelled; M1 and X1 alerts are in Table 5.
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 03:04:46 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:17 UTC).
