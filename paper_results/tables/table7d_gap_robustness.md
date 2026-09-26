@@ -19,4 +19,4 @@
 
 Coverage: fraction of the 2 h input window the instrument observed (E1 / E2 windows need at least 50%; E4 windows under 50% for one instrument are carried by the other). Real gaps in the data; nothing simulated. Thresholds and calibration as in Table 3. 95% intervals resampling whole test days. Groups with fewer than 100 windows are omitted.
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:18 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 06:18:55 UTC).

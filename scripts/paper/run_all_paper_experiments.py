@@ -13,6 +13,7 @@ Steps (each a script of its own, rerunnable alone):
    5 evaluate_experiments.py   E1/E2/E4 predictions (GPU, ~20 min) and every metric table
   5b gap_robustness.py         performance against real observation gaps (~8 min)
   5c physics_interpretation.py which flares gain from HEL1OS (pre-registered, ~2 min)
+  5d seed_sensitivity.py       E4 - E1 across training seeds 1337 / 7 / 42 (only if the seed runs exist)
    6 leadtime_tables.py        lead times and operating points (from the alerts stage)
    7 make_tables.py            publication tables
    8 paper_results/plotting/fig*.py   every figure
@@ -116,6 +117,8 @@ def main() -> int:
         run("5 evaluate E1/E2/E4", [str(HERE / "evaluate_experiments.py")])
         run("5b observation-gap robustness", [str(HERE / "gap_robustness.py")])
         run("5c physics interpretation (pre-registered)", [str(HERE / "physics_interpretation.py")])
+        if any((S.outputs / "paper" / "seeds").glob("*/checkpoints/best.pt")):
+            run("5d seed sensitivity", [str(HERE / "seed_sensitivity.py")])
         run("6 lead-time tables", [str(HERE / "leadtime_tables.py")])
         run("7 tables", [str(HERE / "make_tables.py")])
         for fig in sorted((PAPER / "plotting").glob("fig*.py")):

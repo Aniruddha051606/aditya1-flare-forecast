@@ -20,4 +20,4 @@
 
 Coverage: fraction of truths inside the q10-q90 interval; scaled: widened by the factor fitted on validation (split-conformal). Width: mean q90 - q10.
 
-Source files and script: scripts/paper/make_tables.py (2026-09-26 05:25:18 UTC).
+Source files and script: scripts/paper/make_tables.py (2026-09-26 06:18:54 UTC).

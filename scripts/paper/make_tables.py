@@ -292,6 +292,28 @@ def table7d():
            "whole test days. Groups with fewer than 100 windows are omitted."])
 
 
+def table7e():
+    if not (PAPER / "seed_sensitivity_summary.csv").exists():
+        raise Missing("seed_sensitivity_summary.csv not found (scripts/paper/seed_sensitivity.py runs after the "
+                      "seed trainings)")
+    ss = _csv("seed_sensitivity_summary.csv")
+    seeds = [c.removeprefix("seed_") for c in ss[0] if c.startswith("seed_") and not c.endswith("_ci95")]
+    rows = []
+    for r in ss:
+        q = HEAD_LABEL.get(r["quantity"], f"flux +{r['horizon_min']} min" if r["quantity"] == "flux" else r["quantity"])
+        rows.append({"quantity": "flux now" if q == "flux +0 min" else q, "metric": r["metric"],
+                     **{f"E4 - E1, seed {s}{' (primary)' if s == '1337' else ''}":
+                        f"{f(r[f'seed_{s}'], 4)} {r[f'seed_{s}_ci95']}" for s in seeds},
+                     "range over seeds": f"{f(r['min_over_seeds'], 4)} to {f(r['max_over_seeds'], 4)}",
+                     "seeds favouring E4 / E1 (interval excludes 0)":
+                         f"{r['n_seeds_interval_favours_E4']} / {r['n_seeds_interval_favours_E1']} of {r['n_seeds']}"})
+    write("table7e_seed_sensitivity", "Table 7e. Training-seed sensitivity of E4 - E1 (common test windows)", rows,
+          ["Robustness study only: the reported results are seed 1337 (Tables 3-7b). E1 and E4 retrained with the "
+           "other seeds declared in config/project.toml; same code, data, split and settings. Each seed pair scored "
+           "as in Table 7b (own validation thresholds and calibration, 95% intervals resampling whole test days). "
+           "All seeds are shown; none is selected."])
+
+
 def table7c():
     hv = _json(S.ablations / "hel1os" / "hel1os_value.json")
     abl = [{"seed": s["seed"].removeprefix("seed_"), "peak log-MAE soft only (dex)": f(s["mae_soft_only"], 4),
@@ -306,7 +328,7 @@ def table7c():
 
 def main() -> int:
     status = []
-    for fn in (table1, table2, table3, table4, table5, table6, table7, table7c, table7d):
+    for fn in (table1, table2, table3, table4, table5, table6, table7, table7c, table7d, table7e):
         try:
             fn()
             status.append(f"- {fn.__name__}: written")

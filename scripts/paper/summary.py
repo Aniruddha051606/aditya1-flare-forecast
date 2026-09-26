@@ -223,6 +223,21 @@ def main() -> int:
     else:
         L += missing("metrics_gap_robustness.csv (scripts/paper/gap_robustness.py)")
 
+    L += ["## Training-seed sensitivity of E4 - E1 (robustness study; reported results are seed 1337)", ""]
+    ss = _csv("seed_sensitivity_summary.csv")
+    if ss:
+        seeds = [c.removeprefix("seed_") for c in ss[0] if c.startswith("seed_") and not c.endswith("_ci95")]
+        L.append(f"E1 and E4 retrained with seeds {', '.join(seeds)} (same code, data, split, settings); every seed "
+                 "pair scored as the primary paired comparison; none selected.")
+        for r in ss:
+            L.append(f"- {r['quantity']} {r['metric']}" + (f" +{r['horizon_min']} min" if r["quantity"] == "flux" else "")
+                     + ": " + "; ".join(f"seed {s} {float(r[f'seed_{s}']):+.4f} {r[f'seed_{s}_ci95']}" for s in seeds)
+                     + f" -> intervals favour E4 in {r['n_seeds_interval_favours_E4']} of {r['n_seeds']} seeds, "
+                       f"E1 in {r['n_seeds_interval_favours_E1']}")
+        L.append("")
+    else:
+        L += missing("seed_sensitivity_summary.csv (scripts/paper/seed_sensitivity.py, after the seed trainings)")
+
     L += ["## Physics interpretation: which flares gain from HEL1OS? (pre-registered)", ""]
     ph = _csv("physics/physics_gain_association.csv")
     if ph:

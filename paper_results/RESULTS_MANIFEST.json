@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "generated_utc": "2026-09-26 06:06:11",
-    "git_commit": "2908c91285fb85417c5f984bab485f598f47736d+uncommitted-changes",
+    "generated_utc": "2026-09-26 06:18:55",
+    "git_commit": "4051d181c2dc0811f5e8f0934bdce5860584df8e+uncommitted-changes",
     "python": "3.14.7",
     "script": "manifest.py"
   },
@@ -454,6 +454,7 @@
       "scripts/paper/paper_metrics.py",
       "scripts/paper/physics_interpretation.py",
       "scripts/paper/run_all_paper_experiments.py",
+      "scripts/paper/seed_sensitivity.py",
       "scripts/paper/summary.py",
       "scripts/paper/test_status.py"
     ],
@@ -716,8 +717,8 @@
     },
     {
       "path": "paper_results/PAPER_RESULTS_SUMMARY.md",
-      "bytes": 16330,
-      "sha256": "3bea95d6cb7dc0a94362d619d31aff56e39ace3a34b848a27e2ec9e302d523c2"
+      "bytes": 16538,
+      "sha256": "1eaf83354c8dc6ce1e0a77ccc8c4886eb13fde2b4f47bb45191a6cc95b714f24"
     },
     {
       "path": "paper_results/physics/00_preregistration.md",
@@ -836,8 +837,8 @@
     },
     {
       "path": "paper_results/tables/README.md",
-      "bytes": 249,
-      "sha256": "c0af34aa13eb9b78b90f118977f81c0a90768b34cea682f70db15a260df602b8"
+      "bytes": 377,
+      "sha256": "edfd1072c25ed09f62a3d1194b47b6dfa9546845c99476d4b5ed926b29499c53"
     },
     {
       "path": "paper_results/tables/table1_data.csv",
@@ -847,7 +848,7 @@
     {
       "path": "paper_results/tables/table1_data.md",
       "bytes": 823,
-      "sha256": "205b2a7a447d6a3bfda5488e8181667032f4441dd69ae1d1fc2f749f21d0634a"
+      "sha256": "e0b7d6dbb89539ca6b335e4e6ba6f8d37d7f21059cc43841584d64a2016469c8"
     },
     {
       "path": "paper_results/tables/table2_experiments.csv",
@@ -857,7 +858,7 @@
     {
       "path": "paper_results/tables/table2_experiments.md",
       "bytes": 770,
-      "sha256": "af6e46eb10173235931110b9894761682ad2cab5f8b578ef76f3fc9a1da9057e"
+      "sha256": "b886dcd92dcfc4bb88a0dc06a160c3d542476c8e13d7c7acb38bad9d88b72c93"
     },
     {
       "path": "paper_results/tables/table3_classification.csv",
@@ -867,7 +868,7 @@
     {
       "path": "paper_results/tables/table3_classification.md",
       "bytes": 2796,
-      "sha256": "891a9c666e6b8b76956d7b70ec66c678c6ceac8722c19c7ab421a38eb1cd5a8c"
+      "sha256": "12715d4736510f9148f83a203edae57a420c1e422975f361360375dd8ae4f927"
     },
     {
       "path": "paper_results/tables/table3b_classification_native.csv",
@@ -877,7 +878,7 @@
     {
       "path": "paper_results/tables/table3b_classification_native.md",
       "bytes": 2779,
-      "sha256": "ead87dc556fca12fb4a1a83111ae0013edb0184a24c56083bdc2b7fcf268bff1"
+      "sha256": "e6882e92760f9ea0a52d4113bdc754695418f59768846007613664fa77fbe536"
     },
     {
       "path": "paper_results/tables/table4_flux.csv",
@@ -887,7 +888,7 @@
     {
       "path": "paper_results/tables/table4_flux.md",
       "bytes": 3179,
-      "sha256": "c6e0c5eb76ad89494ef467b3970bc645a2824687e66779ce2f2472209b710bf5"
+      "sha256": "8d1ba9025d7e27deb4657ebf47de20361c74b303d97ff59735f43b4f0cd99ec4"
     },
     {
       "path": "paper_results/tables/table5_leadtime.csv",
@@ -897,7 +898,7 @@
     {
       "path": "paper_results/tables/table5_leadtime.md",
       "bytes": 3631,
-      "sha256": "7a067c88824521f50e2c91e6cb6d6df00d802a7999d9221f6e65acde29998f31"
+      "sha256": "111a35c354eea78c1f9cd44bc2632c11aedac3af77c9d436853f68bf5e7d4246"
     },
     {
       "path": "paper_results/tables/table5b_leadtime_by_class.csv",
@@ -907,7 +908,7 @@
     {
       "path": "paper_results/tables/table5b_leadtime_by_class.md",
       "bytes": 1184,
-      "sha256": "1296262d04a887ea0f9ae21fe819767ee17008908a1031f42c3b866f2036747b"
+      "sha256": "cde52bc965bde1dfd82d53d5fb831e019c895ebfb171b8400d39664e5c3d5441"
     },
     {
       "path": "paper_results/tables/table6_calibration.csv",
@@ -917,7 +918,7 @@
     {
       "path": "paper_results/tables/table6_calibration.md",
       "bytes": 1506,
-      "sha256": "31fb5062cf7f28f48bfa3f9ee363169b93f111a4845e7f3560ec5638d8fbf40b"
+      "sha256": "306ef8b52b7657026a449803f78a8144478df27d088c2df81d53b7d907ccf1d3"
     },
     {
       "path": "paper_results/tables/table6b_uncertainty.csv",
@@ -927,7 +928,7 @@
     {
       "path": "paper_results/tables/table6b_uncertainty.md",
       "bytes": 1907,
-      "sha256": "48e98c2e0ed016f3bfbe668dfb3aa5216920d22b07ef92cf227a11472880a08b"
+      "sha256": "5d06ac3381ed49b01d5a01bd9cee3839b6e6c7545da15035f07294694f9fa9ff"
     },
     {
       "path": "paper_results/tables/table7_robustness.csv",
@@ -937,7 +938,7 @@
     {
       "path": "paper_results/tables/table7_robustness.md",
       "bytes": 1016,
-      "sha256": "18e4c3e16636ff07d3c4475bf89ecd8c5485f6588db35cf32313aac7c3eff7fd"
+      "sha256": "763cf92106aabaef5cc18e2d7572c41d0b4bd19a7086bf149491eeb202420c46"
     },
     {
       "path": "paper_results/tables/table7b_paired_differences.csv",
@@ -947,7 +948,7 @@
     {
       "path": "paper_results/tables/table7b_paired_differences.md",
       "bytes": 9359,
-      "sha256": "fc281cb342a810291694cd5ecfcc360ad5878186ed434ceceb77686304e35b46"
+      "sha256": "2c6b015463f4d7eca78149395528b2b807b14dfd45f4b26876a4460447a57d4d"
     },
     {
       "path": "paper_results/tables/table7c_hel1os_rise_ablation.csv",
@@ -957,7 +958,7 @@
     {
       "path": "paper_results/tables/table7c_hel1os_rise_ablation.md",
       "bytes": 744,
-      "sha256": "a08476dbb204f48f26d5dd3b3f8c67d94ae6340ba99693d582393a5523228697"
+      "sha256": "916005a586838176bba2f64d60babfdeba488362fe0bc73191cc42c65a34101a"
     },
     {
       "path": "paper_results/tables/table7d_gap_robustness.csv",
@@ -967,12 +968,12 @@
     {
       "path": "paper_results/tables/table7d_gap_robustness.md",
       "bytes": 3077,
-      "sha256": "bb76bb325046d09e2b56343d49a254c1c3847fb372f46fd6822d3d6fae3be50c"
+      "sha256": "a1fae60c29f80bb39810ad749f5fcf0142a023ff1e17e4cf6f2149a1ba0ccdcc"
     }
   ],
   "manifest_generated": {
-    "generated_utc": "2026-09-26 06:06:11",
-    "git_commit": "2908c91285fb85417c5f984bab485f598f47736d+uncommitted-changes",
+    "generated_utc": "2026-09-26 06:18:55",
+    "git_commit": "4051d181c2dc0811f5e8f0934bdce5860584df8e+uncommitted-changes",
     "python": "3.14.7",
     "script": "manifest.py"
   }
