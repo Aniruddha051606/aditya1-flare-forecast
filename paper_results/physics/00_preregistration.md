@@ -122,4 +122,28 @@ each prediction in one line. Every number is read from these files.
 
 ## Amendments
 
-None.
+Everything above is unchanged from commit 2908c91. The primary verdicts are the
+ones computed as registered.
+
+- **2026-09-26, after the first run: added post-hoc analyses, labelled "post hoc"
+  in every output.**
+  1. P2 could be evaluated for only 15 primary-sample flares. Of the 343
+     HEL1OS-detected flares, 325 were detected in CdTe 5–20 keV only, and few
+     C-class flares reach CZT 20–40 keV. P2 stays "inconclusive" as registered.
+     An exploratory correlation with log10 CdTe 5–20 keV peak rate
+     (`hard_peak_cdte_5_20_cps`) is reported separately. It does not replace P2.
+     For C-class flares that band is largely thermal.
+  2. Each model's own validation threshold gives each a different false-alarm
+     rate. At the 15- and 30-min heads E4 is more selective, which alone delays
+     its first alert, so a lead-time difference mixes timing with alarm rate.
+     - *First attempt, withdrawn:* re-choosing E1's threshold on validation to
+       match E4's validation false-positive rate. It did not match on the test
+       set: E4's rate shifts from validation to test (60 min: 0.251 → 0.115)
+       while E1's barely moves, so "matched" E1 was on about twice as often on
+       quiet test windows. That comparison is not reported.
+     - *Reported instead:* a threshold-free, ROC-style comparison. Both models'
+       warning times are computed at equal false-positive rates on the common
+       test origins (0.05, 0.10, 0.15, 0.20). Nothing is selected from it, just
+       as nothing is selected from an ROC curve. It is descriptive and does not
+       replace the primary ΔL.
+     - Alert duty cycles at the validation thresholds are reported as context.

@@ -563,6 +563,40 @@ def test_paper_metrics():
                                             "reference: climatology (training mean)"})
 
 
+def test_physics_interpretation_pieces():
+    """scripts/paper/physics_interpretation.py: warning time, censoring, rank statistics."""
+    import importlib.util
+
+    sys.path.insert(0, str(ROOT / "scripts" / "paper"))
+    spec = importlib.util.spec_from_file_location("physics_interpretation",
+                                                  ROOT / "scripts" / "paper" / "physics_interpretation.py")
+    pi = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pi)
+    tc = np.arange(0.0, 7200.0, 120.0)                     # 2-min origins over 2 h
+    above = np.zeros(tc.size, bool)
+    above[30:] = True                                      # alert on from t = 3600 s
+    check("warning time is peak minus the first alert in the window", pi.lead(tc, above, 1800.0, 6000.0)
+          == ((6000.0 - 3600.0) / 60.0, False))
+    check("no alert before the peak is a zero warning", pi.lead(tc, above, 0.0, 3000.0) == (0.0, False))
+    check("an alert already on at the window start is left-censored", pi.lead(tc, above, 3600.0, 6000.0)[1])
+    x = np.arange(20.0)
+    check("Spearman of a monotone relation is 1", abs(pi.spearman(x, x ** 3) - 1.0) < 1e-12)
+    rng = np.random.default_rng(1)
+    zz = rng.normal(size=400)
+    xa, ya = zz + 0.3 * rng.normal(size=400), zz + 0.3 * rng.normal(size=400)
+    check("a shared driver makes the raw rank correlation high and the partial one small",
+          pi.spearman(xa, ya) > 0.7 and abs(pi.partial_spearman(xa, ya, zz)) < 0.15,
+          f"{pi.spearman(xa, ya):.3f}, {pi.partial_spearman(xa, ya, zz):.3f}")
+    check("unrelated ranks give a large permutation p", pi.perm_p(rng.normal(size=200), rng.normal(size=200)) > 0.01)
+    check("Holm multiplies the smallest p by the number of tests and keeps the order",
+          pi.holm([0.01, 0.04]) == [0.02, 0.04] and pi.holm([0.04, 0.01]) == [0.04, 0.02])
+    pt = {"p_occurrence": rng.random((5000, 1)), "y_occurrence": np.zeros((5000, 1)),
+          "y_occurrence_mask": np.ones((5000, 1))}
+    thr = pi.equal_fpr(pt, {"flare_within_60min": {"calibration": None}}, np.arange(5000), [60], 0.1)
+    check("equal-false-alarm threshold puts the alert on at that fraction of quiet origins",
+          abs(np.mean(pt["p_occurrence"][:, 0] >= thr["flare_within_60min"]["threshold"]) - 0.1) < 0.002)
+
+
 def test_sealed_forecast_check():
     import hashlib
     import json

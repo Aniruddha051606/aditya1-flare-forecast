@@ -223,6 +223,25 @@ def main() -> int:
     else:
         L += missing("metrics_gap_robustness.csv (scripts/paper/gap_robustness.py)")
 
+    L += ["## Physics interpretation: which flares gain from HEL1OS? (pre-registered)", ""]
+    ph = _csv("physics/physics_gain_association.csv")
+    if ph:
+        L.append("Hypothesis (paper_results/physics/00_preregistration.md, committed before the analysis): flares with "
+                 "earlier/stronger hard-X-ray signatures show a larger E4-over-E1 warning-time gain dL.")
+        d = _one(ph, analysis="descriptive", outcome="dL_60min", statistic="mean_dL_min")
+        if d:
+            L.append(f"- Flare-level mean dL, 60-min head: {v(d, 2)} min ({d['n_flares']} flares).")
+        for r in (x for x in ph if x["analysis"] == "primary" and x["statistic"] == "spearman_rho"):
+            L.append(f"- Primary, {r['feature']}: Spearman rho {v(r)}, n = {r['n_flares']}, Holm p = "
+                     f"{float(r['p_holm']):.3g}: {r['verdict']}.")
+        r = _one(ph, analysis="secondary: detection contrast", statistic="mean_dL_detected_minus_not_detected")
+        if r:
+            L.append(f"- HEL1OS-detected minus not-detected flares, mean dL: {v(r, 2)} min.")
+        L += ["- Post-hoc analyses (equal false-alarm rates, CdTe brightness) and every row: "
+              "paper_results/physics/README.md and physics_gain_association.csv.", ""]
+    else:
+        L += missing("paper_results/physics/ (scripts/paper/physics_interpretation.py)")
+
     L += ["## Ablation (existing, separately trained, 3 seeds)", ""]
     hv = _json("hel1os_value.json", S.ablations / "hel1os")
     if hv:

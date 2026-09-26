@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "generated_utc": "2026-09-26 05:25:19",
-    "git_commit": "24cba4ebb66f829c17237613c203351f2075fd4c+uncommitted-changes",
+    "generated_utc": "2026-09-26 06:06:11",
+    "git_commit": "2908c91285fb85417c5f984bab485f598f47736d+uncommitted-changes",
     "python": "3.14.7",
     "script": "manifest.py"
   },
@@ -452,6 +452,7 @@
       "scripts/paper/make_tables.py",
       "scripts/paper/manifest.py",
       "scripts/paper/paper_metrics.py",
+      "scripts/paper/physics_interpretation.py",
       "scripts/paper/run_all_paper_experiments.py",
       "scripts/paper/summary.py",
       "scripts/paper/test_status.py"
@@ -715,8 +716,48 @@
     },
     {
       "path": "paper_results/PAPER_RESULTS_SUMMARY.md",
-      "bytes": 15486,
-      "sha256": "aa37ca6a0929dda1bfe7d007559f9f0737b0c234a887d2aba5917118a85aa72b"
+      "bytes": 16330,
+      "sha256": "3bea95d6cb7dc0a94362d619d31aff56e39ace3a34b848a27e2ec9e302d523c2"
+    },
+    {
+      "path": "paper_results/physics/00_preregistration.md",
+      "bytes": 8085,
+      "sha256": "756fc1031c287be983e9a9dc0f80b8ddf1900771fd3f3188d5a4cf388a2e9d6a"
+    },
+    {
+      "path": "paper_results/physics/flare_level_comparison.csv",
+      "bytes": 469363,
+      "sha256": "6d380ffae14309cd70449a862a8859f9e96c2798c75d114864efcbabdff2b625"
+    },
+    {
+      "path": "paper_results/physics/hxr_spectral_features.csv",
+      "bytes": 38857,
+      "sha256": "9ed191907fcd16a3eb116df0a6cff27af02bed1588fb38b4effdc74fdb9b8471"
+    },
+    {
+      "path": "paper_results/physics/hxr_timing_features.csv",
+      "bytes": 97451,
+      "sha256": "622ed8431ae306a0054f892e81a77d45096f2f50f2f2a605d9566a374c0a073c"
+    },
+    {
+      "path": "paper_results/physics/neupert_features.csv",
+      "bytes": 63978,
+      "sha256": "2390bed2b5c0e05780adcce908e7c36ab7ef0d306b202ff68a3f46cbc3bbe7aa"
+    },
+    {
+      "path": "paper_results/physics/physics_gain_association.csv",
+      "bytes": 26645,
+      "sha256": "da236ae194e58bb7aeeea2044cfc0a772827bd86d5c9306c39740499caaf1514"
+    },
+    {
+      "path": "paper_results/physics/physics_provenance.json",
+      "bytes": 2749,
+      "sha256": "ea8d8299dbbd604d26bb6e7c374ad2b6f16b72fba39e27bf423af86b86304b66"
+    },
+    {
+      "path": "paper_results/physics/README.md",
+      "bytes": 4247,
+      "sha256": "d4c0e4f1a5c924b1d4f6ed0413dd663cde74553b89190d0e5b6d88ce5a98d26e"
     },
     {
       "path": "paper_results/plotting/diagram.py",
@@ -930,8 +971,8 @@
     }
   ],
   "manifest_generated": {
-    "generated_utc": "2026-09-26 05:25:19",
-    "git_commit": "24cba4ebb66f829c17237613c203351f2075fd4c+uncommitted-changes",
+    "generated_utc": "2026-09-26 06:06:11",
+    "git_commit": "2908c91285fb85417c5f984bab485f598f47736d+uncommitted-changes",
     "python": "3.14.7",
     "script": "manifest.py"
   }

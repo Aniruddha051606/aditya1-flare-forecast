@@ -44,6 +44,7 @@ it). Every file is written by a script from data or result files; start with
 | Lead time, per flare (not per sample): median, IQR, 10th / 90th percentiles | `leadtime_events.csv`, `leadtime_summary.csv`, Tables 5 / 5b, Fig. 8 |
 | False-alarm operating points chosen on validation | `operating_points.csv`, Table 5 |
 | Robustness: missing SoLEXS or HEL1OS; real observation gaps | `metrics_classification.csv` / `metrics_forecast.csv` (withheld rows), `metrics_gap_robustness.csv`, Tables 7 / 7d, Fig. 10 |
+| Physics: which flares gain from HEL1OS (pre-registered, per-flare E4 - E1 warning time vs HXR timing, strength, spectrum, Neupert) | `physics/00_preregistration.md` (committed before the analysis), `physics/*.csv`, `physics/README.md` |
 | Data, event example, architecture, pipeline, example forecast | Figs. 1, 2, 3, 9; `01_data_inventory.json` / `.md`, Table 1 |
 | Environment, seeds, configs, checksums, commands | `00_environment.json`, `RESULTS_MANIFEST.json` |
 | Tests | `03_test_status.md` |
