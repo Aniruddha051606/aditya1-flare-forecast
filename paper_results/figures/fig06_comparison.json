@@ -1,0 +1,10 @@
+{
+  "figure": "fig06_comparison",
+  "caption": "Paired comparison on the common test windows (both instruments observing; 104,186 labelled windows on 162 days for the in-progress head). Each point is E4 minus a single-instrument experiment on the same windows, each model at its own validation threshold and calibration; bars are 95% intervals from resampling the same whole test days for both models. Filled vermillion squares: E4 - E1 (the value of adding HEL1OS); open blue triangles: E4 - E2 (the value of adding SoLEXS). Left: flare heads (>= C1); right: flux error by horizon, one panel per comparison on its own scale.",
+  "sources": [
+    "paper_results/paired_comparisons.csv"
+  ],
+  "script": "paper_results/plotting/fig06_comparison.py",
+  "generated_utc": "2026-09-26 04:53:07",
+  "git_commit": "79139e81874fe597bf889bbf8456024685ad6c06"
+}

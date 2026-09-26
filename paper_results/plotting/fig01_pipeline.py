@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 
 from diagram import arrow, blank, bottom, box, left, right, top
-from style import DOUBLE, PAPER, save, setup
+from style import DOUBLE, FILL, PAPER, save, setup
 import matplotlib.pyplot as plt
 
 
@@ -26,21 +26,21 @@ def main() -> int:
     fig = plt.figure(figsize=(DOUBLE, 2.6))
     ax = blank(fig)
     a = box(ax, 0.005, 0.60, 0.15, 0.30, f"SoLEXS L1\n{s['days_in_frozen_study']} days\n{s['first_day'][:4]}-"
-            f"{s['first_day'][4:6]} onwards\n(zips read in place)", face="0.95", size=6)
+            f"{s['first_day'][4:6]} onwards\n(zips read in place)", face=FILL["SoLEXS"], size=6)
     b = box(ax, 0.005, 0.18, 0.15, 0.30, f"HEL1OS L1\n{h['products_used_by_the_study']:,} products\n"
-            f"(light curves cached;\nzips kept)", face="0.82", size=6)
+            f"(light curves cached;\nzips kept)", face=FILL["HEL1OS"], size=6)
     c = box(ax, 0.19, 0.36, 0.14, 0.34, f"per-product cache\n{w['grid_s']:g} s grid\n{inv['cache_build']['ok']:,} "
             f"products,\n{inv['cache_build']['failed']} unreadable\n(frozen)", size=6)
     d = box(ax, 0.365, 0.36, 0.14, 0.34, f"features\n{s['model_features']} SoLEXS\n{h['model_features']} HEL1OS\n"
             "trailing\nbackgrounds only", size=6)
     e = box(ax, 0.54, 0.36, 0.15, 0.34, f"windows\n{w['input_s'] / 3600:g} h input\norigin every {w['stride_s'] / 60:g} min\n"
             f"chronological split,\n{sp['checks']['embargo_days']:g}-day embargoes", size=6)
-    f = box(ax, 0.725, 0.36, 0.12, 0.34, "SoLEXHEL-Net\nE1 SoLEXS\nE2 HEL1OS\nE4 both", face="0.88", size=6, bold=False)
+    f = box(ax, 0.725, 0.36, 0.12, 0.34, "SoLEXHEL-Net\nE1 SoLEXS\nE2 HEL1OS\nE4 both", face=FILL["both"], size=6)
     v = box(ax, 0.875, 0.56, 0.12, 0.34, "validation\nthresholds,\ncalibration,\ninterval width", size=6)
     t = box(ax, 0.875, 0.10, 0.12, 0.34, "test (once)\nscores, lead\ntimes, alerts,\nday-block CIs", size=6)
     gb = box(ax, 0.365, 0.02, 0.33, 0.2, f"GOES-18 XRS: truth only, never an input\nflare list >= "
              f"{g['label_threshold']}: {n_flares:,} labelled flares\n1-min flux: the flux target",
-             dashed=True, size=6)
+             face=FILL["GOES"], dashed=True, size=6)
     arrow(ax, right(a), (c[0], c[1] + 0.24))
     arrow(ax, right(b), (c[0], c[1] + 0.10))
     for p, q in ((c, d), (d, e), (e, f)):

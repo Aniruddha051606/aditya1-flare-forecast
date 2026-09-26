@@ -1,0 +1,11 @@
+{
+  "figure": "fig05_horizon",
+  "caption": "Performance against horizon on the common test windows (both instruments observing; 104,186 windows on 162 days for the flux now). Left: mean absolute error of the median log10 GOES-18 XRS-B flux forecast, with the no-change and climatology references on the same windows. Right: TSS of the >= C1 flare heads at each experiment's own validation threshold. Bars: 95% intervals from resampling whole test days.",
+  "sources": [
+    "paper_results/metrics_forecast.csv",
+    "paper_results/metrics_classification.csv"
+  ],
+  "script": "paper_results/plotting/fig05_horizon.py",
+  "generated_utc": "2026-09-26 04:53:50",
+  "git_commit": "79139e81874fe597bf889bbf8456024685ad6c06"
+}

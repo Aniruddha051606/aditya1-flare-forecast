@@ -1,8 +1,9 @@
 """Shared style for the paper figures.
 
-Springer column widths, one font scale, and experiment/line styles that stay
-distinct in greyscale print (line style + marker + grey level, never colour
-alone). Every figure is saved as vector PDF and 300-dpi PNG, with a JSON record
+Springer column widths, one font scale, and a colour-blind-safe palette in which
+each colour has one meaning across all figures; every series also has its own
+line style and marker, so nothing depends on colour alone and the figures stay
+readable in greyscale print. Every figure is saved as vector PDF and 300-dpi PNG, with a JSON record
 next to it: caption, the result files it was drawn from, the script and the git
 commit. Figures are drawn only from result files; nothing is typed in.
 """
@@ -29,16 +30,26 @@ if str(ROOT) not in sys.path:
 SINGLE = 84 / 25.4          # inches: Springer single column
 DOUBLE = 174 / 25.4         # inches: Springer full width
 
+#: Okabe & Ito (2008) colour-blind-safe palette. Colour carries one meaning in
+#: every figure (black = GOES truth, blue = SoLEXS, vermillion = HEL1OS, green =
+#: both); each series keeps its own line style and marker as well.
+C = {"black": "#000000", "orange": "#E69F00", "sky": "#56B4E9", "green": "#009E73", "yellow": "#F0E442",
+     "blue": "#0072B2", "vermillion": "#D55E00", "purple": "#CC79A7", "grey": "#666666", "lightgrey": "#AAAAAA"}
+GOES, SOLEXS, HEL1OS, BOTH = C["black"], C["blue"], C["vermillion"], C["green"]
+#: light fills of the same colours, for boxes and bands
+FILL = {"SoLEXS": "#D6E6F4", "HEL1OS": "#F9DCCB", "both": "#CDEDE2", "GOES": "#EEEEEE"}
+
 #: one style per experiment, used by every figure
 EXPERIMENT = {
-    "E1": {"label": "E1 SoLEXS only", "color": "0.55", "ls": "--", "marker": "s", "hatch": "////"},
-    "E2": {"label": "E2 HEL1OS only", "color": "0.75", "ls": ":", "marker": "^", "hatch": "...."},
-    "E4": {"label": "E4 SoLEXS + HEL1OS", "color": "0.0", "ls": "-", "marker": "o", "hatch": ""},
+    "E1": {"label": "E1 SoLEXS only", "color": SOLEXS, "ls": "--", "marker": "s", "hatch": "////"},
+    "E2": {"label": "E2 HEL1OS only", "color": HEL1OS, "ls": ":", "marker": "^", "hatch": "...."},
+    "E4": {"label": "E4 SoLEXS + HEL1OS", "color": BOTH, "ls": "-", "marker": "o", "hatch": ""},
 }
-REFERENCE = {"color": "0.35", "ls": "-.", "marker": "x"}
-SPLIT = {"train": {"face": "0.90", "hatch": "////", "label": "training"},
-         "val": {"face": "0.80", "hatch": "....", "label": "validation"},
-         "test": {"face": "0.68", "hatch": "xxxx", "label": "test"}}
+REFERENCE = {"color": C["grey"], "ls": "-.", "marker": "x"}
+#: split colours kept apart from the instrument colours
+SPLIT = {"train": {"face": "#F2DCE8", "edge": C["purple"], "hatch": "////", "label": "training"},
+         "val": {"face": "#FBE5BF", "edge": C["orange"], "hatch": "....", "label": "validation"},
+         "test": {"face": "#DDDDDD", "edge": "#444444", "hatch": "xxxx", "label": "test"}}
 
 
 def grid_seconds() -> float:

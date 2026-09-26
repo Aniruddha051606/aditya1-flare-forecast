@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "generated_utc": "2026-09-25 18:56:38",
-    "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278+uncommitted-changes",
+    "generated_utc": "2026-09-26 02:31:46",
+    "git_commit": "79139e81874fe597bf889bbf8456024685ad6c06+uncommitted-changes",
     "python": "3.14.7",
     "script": "data_and_split.py"
   },
@@ -553,7 +553,7 @@
   },
   "GOES": {
     "product": "GOES-18 XRS L2 science: flare summary (flsum) and 1-min averages (avg1m)",
-    "role": "truth only: flare labels, reference flux, scoring. Never a model input (see 05_leakage_checks.md)",
+    "role": "truth only: flare labels, reference flux, scoring. Never a model input (see 02b_leakage_prevention.md)",
     "files": [
       "D:\\Data\\goes\\sci_xrsf-l2-avg1m_g18_y2023_v2-2-1.nc",
       "D:\\Data\\goes\\sci_xrsf-l2-avg1m_g18_y2024_v2-2-1.nc",
@@ -585,12 +585,7 @@
       "files": 32,
       "first": "sharp_2024-02.csv",
       "last": "sharp_2026-09.csv",
-      "status": "downloaded; left out of the final network by the pipeline's own ablation (outputs/ablations/sharp); used only in the day-ahead study"
-    },
-    "SUIT": {
-      "folder": "D:\\Data\\suit",
-      "files": 0,
-      "status": "no real SUIT data on disk: experiments E3, E5, E6 cannot be run (the suit/ code is tested on synthetic data only)"
+      "status": "downloaded; left out of the final network by the pipeline's own ablation (outputs/ablations/sharp); not an input of any Paper 1 experiment"
     }
   }
 }

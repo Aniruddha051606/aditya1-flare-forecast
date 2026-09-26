@@ -14,18 +14,18 @@ from __future__ import annotations
 import numpy as np
 
 from results_io import num, one, rows
-from style import DOUBLE, save, setup
+from style import BOTH, DOUBLE, HEL1OS, SOLEXS, save, setup
 import matplotlib.pyplot as plt
 
 POP = "common"
-SERIES = [("E4", "E4, both instruments", "o", "0.0", "0.0"),
-          ("E4, HEL1OS withheld", "E4, HEL1OS withheld", "s", "0.0", "white"),
-          ("E1", "E1, trained on SoLEXS only", "s", "0.5", "0.5"),
-          ("E4, SoLEXS withheld", "E4, SoLEXS withheld", "^", "0.0", "white"),
-          ("E2", "E2, trained on HEL1OS only", "^", "0.5", "0.5")]
+SERIES = [("E4", "E4, both instruments", "o", BOTH, BOTH),
+          ("E4, HEL1OS withheld", "E4, HEL1OS withheld", "s", BOTH, "white"),
+          ("E1", "E1, trained on SoLEXS only", "s", SOLEXS, SOLEXS),
+          ("E4, SoLEXS withheld", "E4, SoLEXS withheld", "^", BOTH, "white"),
+          ("E2", "E2, trained on HEL1OS only", "^", HEL1OS, HEL1OS)]
 PANELS = [("metrics_classification.csv", {"head": "in_flare", "metric": "ROC_AUC"}, "AUC, flare in progress"),
           ("metrics_classification.csv", {"head": "flare_within_15min", "metric": "ROC_AUC"}, "AUC, flare within 15 min"),
-          ("metrics_forecast.csv", {"horizon_min": 15, "metric": "MAE"}, "MAE, flux +15 min (dex)")]
+          ("metrics_forecast.csv", {"horizon_min": 15, "metric": "MAE"}, "MAE, flux +15 min (dex, log scale)")]
 
 
 def main() -> int:
@@ -43,7 +43,9 @@ def main() -> int:
         ax.set_yticks(np.arange(len(SERIES)), [s[1] for s in SERIES] if ax is axes[0] else [], fontsize=6)
         ax.invert_yaxis()
         ax.set_title(title, loc="left")
-        ax.grid(True, axis="x", lw=0.3, color="0.85")
+        ax.grid(True, axis="x", which="both", lw=0.3, color="#DDDDDD")
+        if table == "metrics_forecast.csv":
+            ax.set_xscale("log")
     r0 = one(tables["metrics_classification.csv"], experiment="E4", population=POP, head="in_flare", metric="ROC_AUC")
     cap = ("Dependence of E4 on both instruments, on the common test windows "
            f"({int(num(r0['n_samples'])):,} labelled windows, {r0['n_days']} days). Rows: E4 as deployed; E4 with one "

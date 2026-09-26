@@ -17,7 +17,7 @@ import csv
 import numpy as np
 
 from example_event import pick
-from style import DOUBLE, PAPER, save, setup
+from style import BOTH, C, DOUBLE, GOES, PAPER, save, setup
 import matplotlib.pyplot as plt
 
 from solarflare.settings import load_settings
@@ -64,27 +64,27 @@ def main() -> int:
     gm = (g.time_unix >= t0) & (g.time_unix < t1)
     fig, axes = plt.subplots(3, 1, figsize=(DOUBLE, 4.6), sharex=True, gridspec_kw={"hspace": 0.08})
     ax = axes[0]
-    ax.plot(mins(g.time_unix[gm]), np.log10(g.xrsb[gm]), color="0.0", lw=1.1, label="GOES-18 XRS-B (truth)")
+    ax.plot(mins(g.time_unix[gm]), np.log10(g.xrsb[gm]), color=GOES, lw=1.2, label="GOES-18 XRS-B (truth)")
     tgt = P["origin"][m] + 60.0 * H_MIN
-    ax.fill_between(mins(tgt), fc[:, k15, 0], fc[:, k15, -1], color="0.8", lw=0,
+    ax.fill_between(mins(tgt), fc[:, k15, 0], fc[:, k15, -1], color="#BDE5D6", lw=0,
                     label=f"E4 +{H_MIN} min forecast, q{int(qs[0] * 100)}-q{int(qs[-1] * 100)}")
-    ax.plot(mins(tgt), fc[:, k15, i50], color="0.25", ls="--", lw=1.0, label=f"E4 +{H_MIN} min forecast, median")
+    ax.plot(mins(tgt), fc[:, k15, i50], color=BOTH, ls="--", lw=1.2, label=f"E4 +{H_MIN} min forecast, median")
     ax.set_ylabel("log$_{10}$ flux (W m$^{-2}$)")
     ax.legend(loc="upper left")
     ax = axes[1]
-    ax.plot(mins(avail[m]), P["p_occ"][m, 0], color="0.0", lw=1.0, label="E4 P(>= C1 flare within 15 min), calibrated")
-    ax.axhline(thr_c, color="0.3", ls=":", lw=0.9, label="alert threshold (2 false alarms/day on validation)")
+    ax.plot(mins(avail[m]), P["p_occ"][m, 0], color=BOTH, lw=1.2, label="E4 P(>= C1 flare within 15 min), calibrated")
+    ax.axhline(thr_c, color=C["vermillion"], ls=":", lw=1.1, label="alert threshold (2 false alarms/day on validation)")
     ax.set_ylim(-0.02, 1.02)
     ax.set_ylabel("Probability")
     ax.legend(loc="upper left")
     ax = axes[2]
-    ax.plot(mins(avail[m]), m_signal, color="0.0", lw=1.0, label="E4 highest median forecast, +5/+15/+30 min")
-    ax.axhline(thr_m, color="0.3", ls=":", lw=0.9, label="M1 alert threshold (0.5 false alarms/day on validation)")
+    ax.plot(mins(avail[m]), m_signal, color=BOTH, lw=1.2, label="E4 highest median forecast, +5/+15/+30 min")
+    ax.axhline(thr_m, color=C["vermillion"], ls=":", lw=1.1, label="M1 alert threshold (0.5 false alarms/day on validation)")
     ax.set_ylabel("log$_{10}$ flux (W m$^{-2}$)")
     ax.legend(loc="center left")
     for ax in axes:
         for t in (f.start_unix, f.peak_unix, f.end_unix):
-            ax.axvline(mins(t), color="0.45", lw=0.6, ls="-.")
+            ax.axvline(mins(t), color=C["grey"], lw=0.6, ls="-.")
     for t, name in ((f.start_unix, "GOES start"), (f.peak_unix, "peak"), (f.end_unix, "end")):
         axes[0].text(mins(t), 1.02, name, transform=axes[0].get_xaxis_transform(), ha="center", fontsize=6)
     axes[-1].set_xlabel(f"Minutes from the GOES start ({utc(f.start_unix, '%Y-%m-%d %H:%M')} UTC)")

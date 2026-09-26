@@ -17,17 +17,18 @@ import json
 
 import numpy as np
 
-from style import DOUBLE, PAPER, REFERENCE, save, setup
+from style import BOTH, C, DOUBLE, PAPER, save, setup
 import matplotlib.pyplot as plt
 
 CURVES = {
-    "GOES >= C1 flare within 15 min": [("model", "E4 network", {"color": "0.0", "ls": "-"}),
-                                       ("trend", "SoLEXS trend", {"color": "0.4", "ls": "--"}),
-                                       ("current", "SoLEXS now", {"color": REFERENCE["color"], "ls": ":"})],
-    "GOES flux reaches M1 within 30 min": [("combined", "E4 network or SoLEXS now", {"color": "0.0", "ls": "-"}),
-                                           ("model", "E4 network", {"color": "0.25", "ls": "-."}),
-                                           ("trend", "SoLEXS trend", {"color": "0.4", "ls": "--"}),
-                                           ("current", "SoLEXS now", {"color": REFERENCE["color"], "ls": ":"})],
+    "GOES >= C1 flare within 15 min": [("model", "E4 network", {"color": BOTH, "ls": "-", "lw": 1.3}),
+                                       ("trend", "SoLEXS trend", {"color": C["blue"], "ls": "--"}),
+                                       ("current", "SoLEXS now", {"color": C["sky"], "ls": ":", "lw": 1.3})],
+    "GOES flux reaches M1 within 30 min": [("combined", "E4 network or SoLEXS now", {"color": "#00533B", "ls": "-",
+                                                                                     "lw": 1.3}),
+                                           ("model", "E4 network", {"color": BOTH, "ls": "-."}),
+                                           ("trend", "SoLEXS trend", {"color": C["blue"], "ls": "--"}),
+                                           ("current", "SoLEXS now", {"color": C["sky"], "ls": ":", "lw": 1.3})],
 }
 XMAX = 60
 

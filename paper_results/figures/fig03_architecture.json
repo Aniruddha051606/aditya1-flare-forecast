@@ -7,6 +7,6 @@
     "solarflare/models/net.py"
   ],
   "script": "paper_results/plotting/fig03_architecture.py",
-  "generated_utc": "2026-09-25 20:11:12",
-  "git_commit": "870eeb1ec6e2c891fd66219dec37a55adfdaf278"
+  "generated_utc": "2026-09-26 03:04:53",
+  "git_commit": "79139e81874fe597bf889bbf8456024685ad6c06"
 }

@@ -12,13 +12,13 @@ from __future__ import annotations
 import numpy as np
 
 from results_io import HEAD_ORDER, num, one, rows
-from style import DOUBLE, EXPERIMENT, REFERENCE, save, setup
+from style import C, DOUBLE, EXPERIMENT, save, setup
 import matplotlib.pyplot as plt
 
 POP = "common"
-REFS = {"reference: GOES flux now (persistence)": ("GOES flux now (persistence)", "-.", "x"),
-        "reference: SoLEXS flux now (calibrated on training)": ("SoLEXS flux now", (0, (1, 1)), "+"),
-        "reference: climatology (training mean)": ("climatology", (0, (5, 2, 1, 2, 1, 2)), "_")}
+REFS = {"reference: GOES flux now (persistence)": ("GOES flux now (persistence)", "-.", "x", C["black"]),
+        "reference: SoLEXS flux now (calibrated on training)": ("SoLEXS flux now", (0, (1, 1)), "+", C["sky"]),
+        "reference: climatology (training mean)": ("climatology", (0, (5, 2, 1, 2, 1, 2)), "_", C["grey"])}
 
 
 def _err(r):
@@ -29,7 +29,7 @@ def _err(r):
 def main() -> int:
     setup()
     fx, cl = rows("metrics_forecast.csv"), rows("metrics_classification.csv")
-    fig, (a, b) = plt.subplots(1, 2, figsize=(DOUBLE, 2.7))
+    fig, (a, b) = plt.subplots(1, 2, figsize=(DOUBLE, 3.0))
     hs = sorted({int(r["horizon_min"]) for r in fx if r["population"] == POP})
     x = np.arange(len(hs))
     for k, (e, st) in enumerate(EXPERIMENT.items()):
@@ -37,15 +37,16 @@ def main() -> int:
         v = np.array([_err(p) for p in pts])
         a.errorbar(x + (k - 1) * 0.08, v[:, 0], yerr=v[:, 1:].T, color=st["color"], ls=st["ls"], marker=st["marker"],
                    capsize=1.5, lw=0.9, label=st["label"])
-    for name, (label, ls, mk) in REFS.items():
+    for name, (label, ls, mk, colour) in REFS.items():
         pts = [one(fx, experiment=name, population=POP, horizon_min=h, metric="MAE") for h in hs]
         xs = [x[i] for i, p in enumerate(pts) if p]
-        a.plot(xs, [num(p["value"]) for p in pts if p], color=REFERENCE["color"], ls=ls, marker=mk, lw=0.8,
+        a.plot(xs, [num(p["value"]) for p in pts if p], color=colour, ls=ls, marker=mk, lw=0.8,
                label=label)
     a.set_xticks(x, ["now" if h == 0 else f"+{h}" for h in hs])
     a.set_xlabel("Flux forecast horizon (min)")
-    a.set_ylabel("MAE of log$_{10}$ flux (dex)")
-    a.legend(loc="upper left", fontsize=6)
+    a.set_ylabel("MAE of log$_{10}$ flux (dex, log scale)")
+    a.set_yscale("log")
+    a.grid(True, which="major", lw=0.3, color="#DDDDDD")
     heads = [h for h in HEAD_ORDER if one(cl, head=h, population=POP, metric="TSS")]
     xh = np.arange(len(heads))
     for k, (e, st) in enumerate(EXPERIMENT.items()):
@@ -56,7 +57,9 @@ def main() -> int:
     b.set_xticks(xh, ["in progress" if h == "in_flare" else f"within {h.split('_')[-1][:-3]} min" for h in heads])
     b.set_xlabel(">= C1 flare (target)")
     b.set_ylabel("TSS (validation threshold)")
-    b.legend(loc="upper right", fontsize=6)
+    b.grid(True, which="major", lw=0.3, color="#DDDDDD")
+    handles, labels = a.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=3, bbox_to_anchor=(0.5, 0.0), fontsize=6.5)
     n = one(fx, experiment="E4", population=POP, horizon_min=hs[0], metric="MAE")
     cap = ("Performance against horizon on the common test windows (both instruments observing; "
            f"{int(num(n['n_samples'])):,} windows on {n['n_days']} days for the flux now). Left: mean absolute error of "

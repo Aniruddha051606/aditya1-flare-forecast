@@ -1,0 +1,91 @@
+comparison,population,quantity,horizon_min,metric,value,ci95_low,ci95_high,n_samples,n_days,ci_excludes_zero
+E4 - E1,common,in_flare,0,ROC_AUC,0.00549,0.0033,0.0074,104186,162,True
+E4 - E1,common,in_flare,0,TSS,0.00864,0.0028,0.0146,104186,162,True
+E4 - E1,common,in_flare,0,BSS_calibrated,0.019436,0.0115,0.0277,104186,162,True
+E4 - E1,common,flare_within_15min,15,ROC_AUC,0.021502,0.0152,0.0265,104186,162,True
+E4 - E1,common,flare_within_15min,15,TSS,0.016329,0.0051,0.028,104186,162,True
+E4 - E1,common,flare_within_15min,15,BSS_calibrated,0.024178,0.0168,0.0328,104186,162,True
+E4 - E1,common,flare_within_30min,30,ROC_AUC,0.034853,0.0262,0.0432,104186,162,True
+E4 - E1,common,flare_within_30min,30,TSS,0.035828,0.0176,0.0555,104186,162,True
+E4 - E1,common,flare_within_30min,30,BSS_calibrated,0.033723,0.0233,0.045,104186,162,True
+E4 - E1,common,flare_within_60min,60,ROC_AUC,0.052255,0.0391,0.0628,104186,162,True
+E4 - E1,common,flare_within_60min,60,TSS,0.061808,0.0362,0.0876,104186,162,True
+E4 - E1,common,flare_within_60min,60,BSS_calibrated,0.049403,0.0338,0.0662,104186,162,True
+E4 - E1,common,flux,0,MAE_dex,-3.7e-05,-0.0021,0.002,104186,162,False
+E4 - E1,common,flux,1,MAE_dex,-0.001096,-0.0031,0.0011,104143,162,False
+E4 - E1,common,flux,5,MAE_dex,-0.00094,-0.0026,0.0007,104047,162,False
+E4 - E1,common,flux,15,MAE_dex,-0.002607,-0.0042,-0.0011,103844,162,True
+E4 - E1,common,flux,30,MAE_dex,-0.006485,-0.0088,-0.0043,103557,162,True
+E4 - E1,common,flux,60,MAE_dex,-0.009204,-0.0119,-0.0064,103070,162,True
+E4 - E2,common,in_flare,0,ROC_AUC,0.031003,0.027,0.0347,104186,162,True
+E4 - E2,common,in_flare,0,TSS,0.052434,0.04,0.0647,104186,162,True
+E4 - E2,common,in_flare,0,BSS_calibrated,0.12536,0.1093,0.1415,104186,162,True
+E4 - E2,common,flare_within_15min,15,ROC_AUC,0.06802,0.0572,0.0786,104186,162,True
+E4 - E2,common,flare_within_15min,15,TSS,0.04336,0.0307,0.0548,104186,162,True
+E4 - E2,common,flare_within_15min,15,BSS_calibrated,0.084609,0.0753,0.0957,104186,162,True
+E4 - E2,common,flare_within_30min,30,ROC_AUC,0.098905,0.0845,0.1153,104186,162,True
+E4 - E2,common,flare_within_30min,30,TSS,0.061718,0.0443,0.0772,104186,162,True
+E4 - E2,common,flare_within_30min,30,BSS_calibrated,0.083331,0.0725,0.0955,104186,162,True
+E4 - E2,common,flare_within_60min,60,ROC_AUC,0.137327,0.1142,0.1632,104186,162,True
+E4 - E2,common,flare_within_60min,60,TSS,0.091807,0.0707,0.1119,104186,162,True
+E4 - E2,common,flare_within_60min,60,BSS_calibrated,0.095854,0.0781,0.1166,104186,162,True
+E4 - E2,common,flux,0,MAE_dex,-0.27401,-0.2956,-0.2551,104186,162,True
+E4 - E2,common,flux,1,MAE_dex,-0.261624,-0.2827,-0.243,104143,162,True
+E4 - E2,common,flux,5,MAE_dex,-0.261299,-0.2823,-0.2428,104047,162,True
+E4 - E2,common,flux,15,MAE_dex,-0.261626,-0.2835,-0.2425,103844,162,True
+E4 - E2,common,flux,30,MAE_dex,-0.245539,-0.2671,-0.2262,103557,162,True
+E4 - E2,common,flux,60,MAE_dex,-0.241606,-0.2644,-0.2221,103070,162,True
+E1 - E2,common,in_flare,0,ROC_AUC,0.025513,0.0216,0.0293,104186,162,True
+E1 - E2,common,in_flare,0,TSS,0.043794,0.0316,0.0561,104186,162,True
+E1 - E2,common,in_flare,0,BSS_calibrated,0.105924,0.087,0.1235,104186,162,True
+E1 - E2,common,flare_within_15min,15,ROC_AUC,0.046518,0.0359,0.0558,104186,162,True
+E1 - E2,common,flare_within_15min,15,TSS,0.027031,0.017,0.0362,104186,162,True
+E1 - E2,common,flare_within_15min,15,BSS_calibrated,0.060432,0.0493,0.0714,104186,162,True
+E1 - E2,common,flare_within_30min,30,ROC_AUC,0.064051,0.0506,0.0787,104186,162,True
+E1 - E2,common,flare_within_30min,30,TSS,0.02589,0.0123,0.0397,104186,162,True
+E1 - E2,common,flare_within_30min,30,BSS_calibrated,0.049609,0.0399,0.0589,104186,162,True
+E1 - E2,common,flare_within_60min,60,ROC_AUC,0.085072,0.0672,0.1078,104186,162,True
+E1 - E2,common,flare_within_60min,60,TSS,0.029999,0.0113,0.0486,104186,162,True
+E1 - E2,common,flare_within_60min,60,BSS_calibrated,0.046451,0.0344,0.061,104186,162,True
+E1 - E2,common,flux,0,MAE_dex,-0.273973,-0.2936,-0.2562,104186,162,True
+E1 - E2,common,flux,1,MAE_dex,-0.260528,-0.2799,-0.2428,104143,162,True
+E1 - E2,common,flux,5,MAE_dex,-0.260359,-0.2803,-0.2428,104047,162,True
+E1 - E2,common,flux,15,MAE_dex,-0.259019,-0.2801,-0.2409,103844,162,True
+E1 - E2,common,flux,30,MAE_dex,-0.239054,-0.2596,-0.2209,103557,162,True
+E1 - E2,common,flux,60,MAE_dex,-0.232402,-0.2545,-0.214,103070,162,True
+"E4 - E4, SoLEXS withheld",common,in_flare,0,ROC_AUC,0.026593,0.0235,0.0301,104186,162,True
+"E4 - E4, SoLEXS withheld",common,in_flare,0,TSS,0.054811,0.0422,0.0665,104186,162,True
+"E4 - E4, SoLEXS withheld",common,in_flare,0,BSS_calibrated,0.129676,0.1113,0.1462,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_15min,15,ROC_AUC,0.047657,0.0397,0.0548,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_15min,15,TSS,0.034877,0.024,0.044,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_15min,15,BSS_calibrated,0.08469,0.0753,0.0941,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_30min,30,ROC_AUC,0.064624,0.0531,0.0747,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_30min,30,TSS,0.035147,0.025,0.0451,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_30min,30,BSS_calibrated,0.078941,0.069,0.0901,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_60min,60,ROC_AUC,0.088931,0.0725,0.1034,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_60min,60,TSS,0.043748,0.0281,0.06,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flare_within_60min,60,BSS_calibrated,0.09055,0.0747,0.1097,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flux,0,MAE_dex,-0.280662,-0.3056,-0.2578,104186,162,True
+"E4 - E4, SoLEXS withheld",common,flux,1,MAE_dex,-0.270898,-0.2952,-0.2486,104143,162,True
+"E4 - E4, SoLEXS withheld",common,flux,5,MAE_dex,-0.266485,-0.2913,-0.244,104047,162,True
+"E4 - E4, SoLEXS withheld",common,flux,15,MAE_dex,-0.255823,-0.2805,-0.2335,103844,162,True
+"E4 - E4, SoLEXS withheld",common,flux,30,MAE_dex,-0.247565,-0.2723,-0.2248,103557,162,True
+"E4 - E4, SoLEXS withheld",common,flux,60,MAE_dex,-0.236246,-0.2615,-0.2138,103070,162,True
+"E4 - E4, HEL1OS withheld",common,in_flare,0,ROC_AUC,0.005563,0.004,0.0071,104186,162,True
+"E4 - E4, HEL1OS withheld",common,in_flare,0,TSS,0.006076,0.0009,0.0108,104186,162,True
+"E4 - E4, HEL1OS withheld",common,in_flare,0,BSS_calibrated,0.011283,0.0064,0.0164,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_15min,15,ROC_AUC,0.023922,0.0191,0.0293,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_15min,15,TSS,0.02137,0.0122,0.0316,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_15min,15,BSS_calibrated,0.014624,0.0094,0.0202,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_30min,30,ROC_AUC,0.033115,0.0267,0.0406,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_30min,30,TSS,0.033271,0.0179,0.0491,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_30min,30,BSS_calibrated,0.022875,0.0158,0.0306,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_60min,60,ROC_AUC,0.046336,0.038,0.0564,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_60min,60,TSS,0.047777,0.0264,0.0706,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flare_within_60min,60,BSS_calibrated,0.035692,0.0263,0.0468,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flux,0,MAE_dex,-0.003994,-0.006,-0.0023,104186,162,True
+"E4 - E4, HEL1OS withheld",common,flux,1,MAE_dex,-0.004838,-0.0068,-0.0032,104143,162,True
+"E4 - E4, HEL1OS withheld",common,flux,5,MAE_dex,-0.005736,-0.0079,-0.004,104047,162,True
+"E4 - E4, HEL1OS withheld",common,flux,15,MAE_dex,-0.005937,-0.0082,-0.0041,103844,162,True
+"E4 - E4, HEL1OS withheld",common,flux,30,MAE_dex,-0.005785,-0.0082,-0.0037,103557,162,True
+"E4 - E4, HEL1OS withheld",common,flux,60,MAE_dex,-0.00384,-0.0063,-0.0015,103070,162,True

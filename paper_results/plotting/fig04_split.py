@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 
 import numpy as np
 
-from style import DOUBLE, PAPER, SPLIT, grid_seconds, save, setup
+from style import DOUBLE, HEL1OS, PAPER, SOLEXS, SPLIT, grid_seconds, save, setup
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
@@ -59,7 +59,7 @@ def main() -> int:
     emb = sp["checks"]["embargo_days"]
     bar = axes[0]
     for a, b, st in spans:
-        bar.axvspan(a, b, facecolor=st["face"], hatch=st["hatch"], edgecolor="0.3", lw=0.6)
+        bar.axvspan(a, b, facecolor=st["face"], hatch=st["hatch"], edgecolor=st["edge"], lw=0.8)
         bar.text((a + b) / 2, 0.5, st["label"], ha="center", va="center", fontsize=7,
                  bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.6})
     for (_, b0, _), (a1, _, _) in zip(spans[:-1], spans[1:]):
@@ -68,16 +68,16 @@ def main() -> int:
     bar.set_ylim(0, 1)
     for s_ in ("left", "right", "top"):
         bar.spines[s_].set_visible(False)
-    for ax, (kind, name) in zip(axes[1:], (("solexs", "SoLEXS"), ("hel1os", "HEL1OS"))):
+    for ax, (kind, name, colour) in zip(axes[1:], (("solexs", "SoLEXS", SOLEXS), ("hel1os", "HEL1OS", HEL1OS))):
         days, hours = daily_hours(S.cache, kind)
         full = np.arange(days.min(), days.max() + 1)
         h = np.zeros(full.size)
         h[days - days.min()] = hours
         x = [to_dt(d(v * 86400)) for v in full] + [to_dt(d((full[-1] + 1) * 86400))]
-        ax.stairs(h, x, fill=True, color="0.45", lw=0)
-        for a, b, _ in spans:
+        ax.stairs(h, x, fill=True, color=colour, alpha=0.85, lw=0)
+        for a, b, st in spans:
             for edge in (a, b):
-                ax.axvline(edge, color="0.0", ls="--", lw=0.6)
+                ax.axvline(edge, color=st["edge"], ls="--", lw=0.8)
         ax.set_ylim(0, 24.5)
         ax.set_yticks([0, 12, 24])
         ax.set_ylabel(f"{name}\n(h per day)")
@@ -87,7 +87,7 @@ def main() -> int:
     ax.set_xlabel("Date (UTC)")
     cap = (f"Top: the chronological split used by every experiment. Middle and bottom: daily observing time of "
            f"SoLEXS and HEL1OS in the frozen study data (union of {DT:g} s "
-           f"bins with data); dashed lines mark the split boundaries. Split: "
+           f"bins with data); dashed lines mark the split boundaries (colours as in the top bar). Split: "
            f"training {sp['splits']['train']['first_origin_utc'][:10]} "
            f"to {sp['splits']['train']['last_origin_utc'][:10]}, validation "
            f"{sp['splits']['val']['first_origin_utc'][:10]} to {sp['splits']['val']['last_origin_utc'][:10]}, test "

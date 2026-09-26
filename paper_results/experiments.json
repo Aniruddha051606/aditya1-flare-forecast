@@ -1,0 +1,137 @@
+{
+  "provenance": {
+    "generated_utc": "2026-09-26 03:04:44",
+    "git_commit": "79139e81874fe597bf889bbf8456024685ad6c06+uncommitted-changes",
+    "python": "3.14.7",
+    "script": "evaluate_experiments.py"
+  },
+  "climatology_log_flux": -5.624385833740234,
+  "experiments": {
+    "E1": {
+      "label": "SoLEXS only",
+      "run": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\outputs\\paper\\E1_solexs_only",
+      "inputs": "soft",
+      "best_epoch": 26,
+      "parameters": 463615,
+      "seed": 1337
+    },
+    "E2": {
+      "label": "HEL1OS only",
+      "run": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\outputs\\paper\\E2_hel1os_only",
+      "inputs": "hard",
+      "best_epoch": 18,
+      "parameters": 463615,
+      "seed": 1337
+    },
+    "E4": {
+      "label": "SoLEXS + HEL1OS",
+      "run": "D:\\Deep Learning algorithm for Forecasting and Nowcasting Solar Flares using combined Soft and Hard X-ray data from Aditya-L1 (SoLEXS + HEL1OS)\\outputs\\model",
+      "inputs": "both",
+      "best_epoch": 48,
+      "parameters": 463615,
+      "seed": 1337
+    }
+  },
+  "robustness": {
+    "E4, SoLEXS withheld": {
+      "model": "E4",
+      "withheld_at_prediction": "soft"
+    },
+    "E4, HEL1OS withheld": {
+      "model": "E4",
+      "withheld_at_prediction": "hard"
+    }
+  },
+  "window": {
+    "occurrence_min": [
+      15,
+      30,
+      60
+    ],
+    "forecast_min": [
+      1,
+      5,
+      15,
+      30,
+      60
+    ],
+    "quantiles": [
+      0.1,
+      0.5,
+      0.9
+    ],
+    "min_observed_fraction": 0.5
+  },
+  "bootstrap": {
+    "method": "bootstrap over whole UTC days of the test period (all windows of a day drawn together); paired differences resample the same days for both models",
+    "n_boot": 500,
+    "n_boot_auc": 200,
+    "seed": 0,
+    "interval": "2.5-97.5 percentile (95%)"
+  },
+  "populations_test": {
+    "common": {
+      "windows": 105512,
+      "days": 162
+    },
+    "native_E1": {
+      "windows": 107912,
+      "days": 162
+    },
+    "native_E2": {
+      "windows": 116206,
+      "days": 171
+    },
+    "native_E4": {
+      "windows": 118622,
+      "days": 171
+    }
+  },
+  "validation_fits": {
+    "E1": {
+      "in_flare": {
+        "threshold": 0.3370000123977661
+      },
+      "flare_within_15min": {
+        "threshold": 0.41100001335144043
+      },
+      "flare_within_30min": {
+        "threshold": 0.45100000500679016
+      },
+      "flare_within_60min": {
+        "threshold": 0.5350000262260437
+      }
+    },
+    "E2": {
+      "in_flare": {
+        "threshold": 0.3799999952316284
+      },
+      "flare_within_15min": {
+        "threshold": 0.44600000977516174
+      },
+      "flare_within_30min": {
+        "threshold": 0.4819999933242798
+      },
+      "flare_within_60min": {
+        "threshold": 0.5580000281333923
+      }
+    },
+    "E4": {
+      "in_flare": {
+        "threshold": 0.3610000014305115
+      },
+      "flare_within_15min": {
+        "threshold": 0.4180000126361847
+      },
+      "flare_within_30min": {
+        "threshold": 0.4560000002384186
+      },
+      "flare_within_60min": {
+        "threshold": 0.5270000100135803
+      }
+    }
+  },
+  "calibration": "isotonic regression (solarflare.probcal) on each experiment's own validation windows",
+  "thresholds": "best TSS on each experiment's own validation windows (solarflare.metrics.best_threshold)",
+  "interval_scale": "split-conformal widening factor fitted on validation (solarflare.metrics.interval_scale)"
+}

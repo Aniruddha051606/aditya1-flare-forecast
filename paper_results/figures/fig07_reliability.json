@@ -1,0 +1,10 @@
+{
+  "figure": "fig07_reliability",
+  "caption": "Reliability of the E4 probabilities for >= C1 flares on the test period (all E4 test windows), before (open orange squares) and after (filled green circles) isotonic calibration fitted on the validation period only. Points are equal-width probability bins with at least 100 windows; the dotted diagonal is perfect reliability. Brier scores and skill are in metrics_classification.csv.",
+  "sources": [
+    "paper_results/reliability.csv"
+  ],
+  "script": "paper_results/plotting/fig07_reliability.py",
+  "generated_utc": "2026-09-26 03:05:01",
+  "git_commit": "79139e81874fe597bf889bbf8456024685ad6c06"
+}

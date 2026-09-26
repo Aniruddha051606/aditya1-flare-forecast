@@ -1,0 +1,11 @@
+{
+  "figure": "fig10_robustness",
+  "caption": "Dependence of E4 on both instruments, on the common test windows (104,186 labelled windows, 162 days). Rows: E4 as deployed; E4 with one instrument withheld at prediction time (its thresholds and calibration unchanged); and the experiments trained on one instrument only. Bars: 95% intervals from resampling whole test days. MAE is of the median log10 GOES-18 XRS-B flux forecast.",
+  "sources": [
+    "paper_results/metrics_classification.csv",
+    "paper_results/metrics_forecast.csv"
+  ],
+  "script": "paper_results/plotting/fig10_robustness.py",
+  "generated_utc": "2026-09-26 04:53:09",
+  "git_commit": "79139e81874fe597bf889bbf8456024685ad6c06"
+}

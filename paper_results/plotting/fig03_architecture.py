@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 
 from diagram import arrow, blank, box, left, right
-from style import DOUBLE, save, setup
+from style import DOUBLE, FILL, save, setup
 import matplotlib.pyplot as plt
 
 from solarflare.config import Config
@@ -41,14 +41,14 @@ def main() -> int:
     fig = plt.figure(figsize=(DOUBLE, 2.7))
     ax = blank(fig)
     inp = f"{L} x {cfg.pre.dt_seconds:g} s ({w.input_seconds / 3600:g} h)"
-    si = box(ax, 0.005, 0.62, 0.14, 0.24, f"SoLEXS (soft X-ray)\n{ns} features + mask\n{inp}", face="0.95", size=6)
-    hi = box(ax, 0.005, 0.14, 0.14, 0.24, f"HEL1OS (hard X-ray)\n{nh} features + mask\n{inp}", face="0.82", size=6)
+    si = box(ax, 0.005, 0.62, 0.14, 0.24, f"SoLEXS (soft X-ray)\n{ns} features + mask\n{inp}", face=FILL["SoLEXS"], size=6)
+    hi = box(ax, 0.005, 0.14, 0.14, 0.24, f"HEL1OS (hard X-ray)\n{nh} features + mask\n{inp}", face=FILL["HEL1OS"], size=6)
     enc_txt = (f"causal TCN encoder\nhidden {m.hidden}, kernel {m.kernel_size}\ndilations {dil[0]}-{dil[-1]}\n"
                "{p:,} parameters")
-    se = box(ax, 0.175, 0.62, 0.16, 0.24, enc_txt.format(p=n["soft_enc"]), size=6)
-    he = box(ax, 0.175, 0.14, 0.16, 0.24, enc_txt.format(p=n["hard_enc"]), size=6)
+    se = box(ax, 0.175, 0.62, 0.16, 0.24, enc_txt.format(p=n["soft_enc"]), face=FILL["SoLEXS"], size=6)
+    he = box(ax, 0.175, 0.14, 0.16, 0.24, enc_txt.format(p=n["hard_enc"]), face=FILL["HEL1OS"], size=6)
     fu = box(ax, 0.37, 0.36, 0.145, 0.28, f"gated fusion\n(gate sees both\nobservation masks)\n{n['fusion']:,} parameters",
-             face="0.88", size=6)
+             face=FILL["both"], size=6)
     tr = box(ax, 0.545, 0.36, 0.125, 0.28, f"causal TCN trunk\ndilations {trunk[0]}-{trunk[-1]}\n{n['trunk']:,}\nparameters",
              size=6)
     po = box(ax, 0.7, 0.36, 0.125, 0.28, f"causal attention\npooling + last\nstep, {m.attn_heads} heads\n"
