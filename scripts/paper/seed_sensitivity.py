@@ -1,5 +1,6 @@
 """Paper step 17: training-seed sensitivity of E4 - E1 (a robustness study only).
 
+    python scripts/paper/seed_sensitivity.py --train --refresh  # train what is missing (resumes), then everything below
     python scripts/paper/seed_sensitivity.py                 # predict finished seed runs (GPU, ~5 min each) + metrics
     python scripts/paper/seed_sensitivity.py --wait          # wait for the seed training job to end, then run
     python scripts/paper/seed_sensitivity.py --metrics-only  # metrics from the saved predictions
@@ -30,7 +31,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import ctypes
 import json
+import sys
 import time
 
 import numpy as np
@@ -69,6 +72,27 @@ def trained(key: str, seed: int) -> str | None:
     if cfg["model"].get("inputs", "both") != INPUTS[key] or cfg["train"]["seed"] != seed:
         return f"{key} seed {seed}: {run} has inputs={cfg['model'].get('inputs')}, seed={cfg['train']['seed']}"
     return None
+
+
+def launch_training() -> str:
+    """Start one detached console job for every seed run not yet finished, pair by pair
+    (E1 then E4 for each seed), so the first complete pair is ready soonest."""
+    from dashboard.console import jobs
+
+    steps = []
+    for seed in SEEDS:
+        for key in INPUTS:
+            if seed == PRIMARY_SEED or trained(key, seed) is None:
+                continue
+            extra = ["--set", f"model.inputs={INPUTS[key]}"] if INPUTS[key] != "both" else []
+            steps.append({"label": f"{key} seed {seed}",
+                          "cmd": ["PY", "-u", "-m", "solarflare", "train", "--from-run", "outputs/model",
+                                  "--out-dir", run_dir(key, seed).relative_to(ROOT).as_posix(), *extra,
+                                  "--seed", str(seed)]})
+    if not steps:
+        return "every seed run is already trained"
+    err = jobs.launch("Paper seed sensitivity: E1 and E4, seeds 7 and 42", steps)
+    return err or "training started: " + ", ".join(s["label"] for s in steps)
 
 
 def load(key: str, seed: int, split: str) -> dict:
@@ -174,10 +198,20 @@ def main() -> int:
     ap.add_argument("--wait", action="store_true", help="wait for the seed training job to finish first")
     ap.add_argument("--metrics-only", action="store_true")
     ap.add_argument("--refresh", action="store_true", help="then rerun make_tables, summary and manifest")
+    ap.add_argument("--train", action="store_true",
+                    help="first start a detached console job training the seed runs not yet finished "
+                         "(an interrupted run resumes from its last epoch); implies --wait")
     args = ap.parse_args()
+    if sys.platform == "win32":                    # keep the machine awake while waiting and predicting
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
+    if args.train:
+        print(launch_training(), flush=True)
+        args.wait = True
     if args.wait:
         from dashboard.console import jobs
 
+        print("waiting for the training job to finish (closing this window does not stop it; "
+              "rerun with --refresh afterwards) ...", flush=True)
         while jobs.job_running()[2]:
             time.sleep(300)
     missing = [m for s in SEEDS for k in INPUTS if (m := trained(k, s))]
@@ -194,7 +228,6 @@ def main() -> int:
     rc = metrics(seeds)
     if rc == 0 and args.refresh:
         import subprocess
-        import sys
         from pathlib import Path
 
         for step in ("make_tables.py", "summary.py", "manifest.py"):
